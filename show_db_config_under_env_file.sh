@@ -1,0 +1,1 @@
+env $(cat .env | grep '^[^#;]' | xargs) ./gradlew -q show_db_config
