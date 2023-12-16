@@ -1,4 +1,4 @@
-create table users
+create table app_user
 (
     id            int          not null primary key,
     user_name     varchar(255) not null,
