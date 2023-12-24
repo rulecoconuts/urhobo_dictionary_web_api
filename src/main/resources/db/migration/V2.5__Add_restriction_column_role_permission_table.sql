@@ -1,0 +1,1 @@
+alter table role_permission add column restriction jsonb
