@@ -1,5 +1,7 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.config.database;
 
+import org.jooq.SQLDialect;
+import org.jooq.conf.WriteIfReadonly;
 import org.jooq.impl.DataSourceConnectionProvider;
 import org.jooq.impl.DefaultConfiguration;
 import org.jooq.impl.DefaultDSLContext;
@@ -17,26 +19,28 @@ public class DatabaseConnectionConfiguration {
     DataSource dataSource;
 
     @Bean
-    public DataSourceConnectionProvider getDataSourceConnectionProvider(){
+    public DataSourceConnectionProvider getDataSourceConnectionProvider() {
         return new DataSourceConnectionProvider(new TransactionAwareDataSourceProxy(dataSource));
     }
 
     @Bean
-    public DefaultDSLContext getDSLContext(){
+    public DefaultDSLContext getDSLContext() {
         return new DefaultDSLContext(getJooqConfiguration());
     }
 
     @Bean
-    public DefaultConfiguration getJooqConfiguration(){
+    public DefaultConfiguration getJooqConfiguration() {
         DefaultConfiguration jooqConfiguration = new DefaultConfiguration();
         jooqConfiguration.set(getDataSourceConnectionProvider());
+        jooqConfiguration.set(SQLDialect.POSTGRES);
         jooqConfiguration.set(new DefaultExecuteListenerProvider(getJooqExceptionTranslator()));
+        jooqConfiguration.settings().setReadonlyInsert(WriteIfReadonly.IGNORE);
 
         return jooqConfiguration;
     }
 
     @Bean
-    JooqExceptionTranslator getJooqExceptionTranslator(){
+    JooqExceptionTranslator getJooqExceptionTranslator() {
         return new JooqExceptionTranslator();
     }
 }
