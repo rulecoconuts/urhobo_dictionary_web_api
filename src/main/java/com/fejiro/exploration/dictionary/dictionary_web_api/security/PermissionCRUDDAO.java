@@ -88,7 +88,6 @@ public class PermissionCRUDDAO implements CRUDDAO<PermissionDomainObject, Intege
 
     @Override
     public Iterable<PermissionDomainObject> updateAll(Iterable<PermissionDomainObject> models) {
-        UpdateSetFirstStep<PermissionRecord> permissionUpdateFirstStep = dsl.update(Permission.PERMISSION);
         List<PermissionRecord> records = StreamSupport.stream(models.spliterator(), false)
                                                       .map(model -> dsl.newRecord(Permission.PERMISSION, model))
                                                       .toList();
