@@ -1,5 +1,9 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.security;
 
+import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
+import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Permission;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.PermissionRecord;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +24,7 @@ import java.util.stream.StreamSupport;
 public class PermissionsDataLoader implements SmartInitializingSingleton {
 
     @Autowired
-    PermissionCRUDDAO permissionCRUDDAO;
+    CRUDDAO<PermissionDomainObject, Integer> permissionCRUDDAO;
 
     Logger logger = LoggerFactory.getLogger(PermissionsDataLoader.class);
 
@@ -33,15 +37,17 @@ public class PermissionsDataLoader implements SmartInitializingSingleton {
                                                  .map(Enum::name)
                                                  .collect(Collectors.toUnmodifiableSet());
 
-            Iterable<PermissionDomainObject> existingPermissions = permissionCRUDDAO.retrieveAllByName(allPossibleNames);
+            Iterable<PermissionDomainObject> existingPermissions = ((GenericJOOQCRUDDAO<PermissionDomainObject, Integer, PermissionRecord>) permissionCRUDDAO).retrieveAll(
+                    Permission.PERMISSION.NAME.in(allPossibleNames)
+            );
             Set<String> existingPermissionNames = StreamSupport.stream(existingPermissions.spliterator(), false)
                                                                .map(PermissionDomainObject::getName)
                                                                .collect(Collectors.toUnmodifiableSet());
 
 
             // Create the permissions that do not exist
-            Collection<String> nonExistentPermissionNames = CollectionUtils.subtract(allPossibleNames, existingPermissionNames);
-            var dialect = permissionCRUDDAO.dsl.dialect();
+            Collection<String> nonExistentPermissionNames = CollectionUtils.subtract(allPossibleNames,
+                                                                                     existingPermissionNames);
 
             if (nonExistentPermissionNames.isEmpty()) {
                 logger.info("Skipping permissions data loading: All permissions found");
@@ -50,8 +56,9 @@ public class PermissionsDataLoader implements SmartInitializingSingleton {
 
             logger.debug("Starting permissions loading");
 
-            Iterable<PermissionDomainObject> newlyCreatedPermissions = permissionCRUDDAO.createAll(nonExistentPermissionNames
-                    .stream().map(PermissionDomainObject::new).toList());
+            Iterable<PermissionDomainObject> newlyCreatedPermissions = permissionCRUDDAO.createAll(
+                    nonExistentPermissionNames
+                            .stream().map(PermissionDomainObject::new).toList());
 
             logger.info("Completed permissions loading");
         } catch (Exception e) {

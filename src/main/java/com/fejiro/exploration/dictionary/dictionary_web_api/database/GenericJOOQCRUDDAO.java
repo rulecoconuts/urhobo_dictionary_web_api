@@ -35,7 +35,11 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
      * @param model
      * @return Non-null if there is an error
      */
-    String validateForCreation(T model);
+    default String validateForCreation(T model) {
+        if (getId(model) != null) return "Model to be created has a non-null id";
+
+        return null;
+    }
 
     /**
      * Validate whether an iterable of models is ready for creation
@@ -174,7 +178,7 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
                        .valuesOfRows(valueRows)
                        .returning()
                        .fetchInto((Class<? extends T>)
-                               toBeCreatedCollection.get(0).getClass()
+                                          toBeCreatedCollection.get(0).getClass()
                        );
     }
 
@@ -184,7 +188,11 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
      * @param model
      * @return Non-null if there is an error
      */
-    String validateForUpdate(T model);
+    default String validateForUpdate(T model) {
+        if (getId(model) == null) return "Model to be updated has null id";
+
+        return null;
+    }
 
     /**
      * Validate whether an iterable of models is ready for update
@@ -302,6 +310,21 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
                        .where(getIdEqCondition(id))
                        .fetchOneInto(getModelClass());
     }
+
+    default T retrieveOne(Condition condition) {
+        return getDsl().select()
+                       .from(getTable())
+                       .where(condition)
+                       .fetchOneInto(getModelClass());
+    }
+
+    default Iterable<T> retrieveAll(Condition condition) {
+        return getDsl().select()
+                       .from(getTable())
+                       .where(condition)
+                       .fetchInto(getModelClass());
+    }
+
 
     /**
      * Retrieve all moodels
