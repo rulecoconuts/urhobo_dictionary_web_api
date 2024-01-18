@@ -1,8 +1,5 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.database;
 
-import com.fejiro.exploration.dictionary.dictionary_web_api.security.PermissionDomainObject;
-import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Permission;
-import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.PermissionRecord;
 import org.jooq.*;
 
 import java.util.*;
@@ -15,15 +12,15 @@ import static org.jooq.impl.DSL.row;
  * Generate a JOOQ-based Create-Retrieve-Update-Delete data access object
  * Author: Oghenefejiro Abohweyere
  *
- * @param <T> Type of the domain model that will be used to interact with this interface
- * @param <I> Type of the id from the domain model [T]
+ * @param <T> Type of the data object model that will be used to interact with this interface
+ * @param <I> Type of the id from the data object model [T]
  * @param <R> The updatable record to be used for JOOQ operations.
  */
 public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends CRUDDAO<T, I> {
     DSLContext getDsl();
 
     /**
-     * Get the class of the domain model
+     * Get the class of the data object model
      *
      * @return
      */
@@ -84,7 +81,7 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
     }
 
     /**
-     * Get the table that represents the domain model [T] in the database
+     * Get the table that represents the data object model [T] in the database
      *
      * @return
      */

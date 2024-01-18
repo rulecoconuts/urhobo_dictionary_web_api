@@ -2,6 +2,7 @@ package com.fejiro.exploration.dictionary.dictionary_web_api.security;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
+import com.fejiro.exploration.dictionary.dictionary_web_api.security.data.PermissionDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Permission;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.PermissionRecord;
 import org.apache.commons.collections4.CollectionUtils;
@@ -24,7 +25,7 @@ import java.util.stream.StreamSupport;
 public class PermissionsDataLoader implements SmartInitializingSingleton {
 
     @Autowired
-    CRUDDAO<PermissionDomainObject, Integer> permissionCRUDDAO;
+    CRUDDAO<PermissionDataObject, Integer> permissionCRUDDAO;
 
     Logger logger = LoggerFactory.getLogger(PermissionsDataLoader.class);
 
@@ -37,11 +38,11 @@ public class PermissionsDataLoader implements SmartInitializingSingleton {
                                                  .map(Enum::name)
                                                  .collect(Collectors.toUnmodifiableSet());
 
-            Iterable<PermissionDomainObject> existingPermissions = ((GenericJOOQCRUDDAO<PermissionDomainObject, Integer, PermissionRecord>) permissionCRUDDAO).retrieveAll(
+            Iterable<PermissionDataObject> existingPermissions = ((GenericJOOQCRUDDAO<PermissionDataObject, Integer, PermissionRecord>) permissionCRUDDAO).retrieveAll(
                     Permission.PERMISSION.NAME.in(allPossibleNames)
             );
             Set<String> existingPermissionNames = StreamSupport.stream(existingPermissions.spliterator(), false)
-                                                               .map(PermissionDomainObject::getName)
+                                                               .map(PermissionDataObject::getName)
                                                                .collect(Collectors.toUnmodifiableSet());
 
 
@@ -56,9 +57,9 @@ public class PermissionsDataLoader implements SmartInitializingSingleton {
 
             logger.debug("Starting permissions loading");
 
-            Iterable<PermissionDomainObject> newlyCreatedPermissions = permissionCRUDDAO.createAll(
+            Iterable<PermissionDataObject> newlyCreatedPermissions = permissionCRUDDAO.createAll(
                     nonExistentPermissionNames
-                            .stream().map(PermissionDomainObject::new).toList());
+                            .stream().map(PermissionDataObject::new).toList());
 
             logger.info("Completed permissions loading");
         } catch (Exception e) {
