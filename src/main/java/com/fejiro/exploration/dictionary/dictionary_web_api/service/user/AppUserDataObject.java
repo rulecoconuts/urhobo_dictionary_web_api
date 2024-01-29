@@ -1,13 +1,15 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.service.user;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.TemporalAuditable;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
 import java.time.OffsetDateTime;
 
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class AppUserDataObject implements TemporalAuditable {
     @EqualsAndHashCode.Include
     Integer id;

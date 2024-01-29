@@ -1,5 +1,7 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.database;
 
+import java.util.Optional;
+
 /**
  * An interface for performing CRUD database operations for some model
  */
@@ -24,7 +26,7 @@ public interface CRUDDAO<T, I> {
 
     Iterable<T> updateAll(Iterable<T> models);
 
-    T retrieveById(I id);
+    Optional<T> retrieveById(I id);
 
     Iterable<T> retrieveAll();
 

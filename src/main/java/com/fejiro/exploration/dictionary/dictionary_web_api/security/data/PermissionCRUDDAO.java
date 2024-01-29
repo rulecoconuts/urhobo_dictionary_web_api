@@ -99,7 +99,7 @@ public class PermissionCRUDDAO implements CRUDDAO<PermissionDataObject, Integer>
     }
 
     @Override
-    public PermissionDataObject retrieveById(Integer id) {
+    public Optional<PermissionDataObject> retrieveById(Integer id) {
         return dsl.select()
                   .from(Permission.PERMISSION)
                   .where(Permission.PERMISSION.ID.eq(id))

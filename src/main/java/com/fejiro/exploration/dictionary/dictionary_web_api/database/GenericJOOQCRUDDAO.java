@@ -301,18 +301,18 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
      * @return
      */
     @Override
-    public default T retrieveById(I id) {
-        return getDsl().select()
-                       .from(getTable())
-                       .where(getIdEqCondition(id))
-                       .fetchOneInto(getModelClass());
+    public default Optional<T> retrieveById(I id) {
+        return Optional.ofNullable(getDsl().select()
+                                           .from(getTable())
+                                           .where(getIdEqCondition(id))
+                                           .fetchOneInto(getModelClass()));
     }
 
-    default T retrieveOne(Condition condition) {
-        return getDsl().select()
-                       .from(getTable())
-                       .where(condition)
-                       .fetchOneInto(getModelClass());
+    default Optional<T> retrieveOne(Condition condition) {
+        return Optional.ofNullable(getDsl().select()
+                                           .from(getTable())
+                                           .where(condition)
+                                           .fetchOneInto(getModelClass()));
     }
 
     default Iterable<T> retrieveAll(Condition condition) {

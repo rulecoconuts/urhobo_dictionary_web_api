@@ -1,5 +1,8 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.service;
 
+import javax.swing.text.html.Option;
+import java.util.Optional;
+
 public interface CRUDService<T, I> {
     /**
      * Create a model in the database
@@ -21,7 +24,7 @@ public interface CRUDService<T, I> {
 
     Iterable<T> updateAll(Iterable<T> models);
 
-    T retrieveById(I id);
+    Optional<T> retrieveById(I id);
 
     Iterable<T> retrieveAll();
 

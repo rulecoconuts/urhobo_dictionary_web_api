@@ -10,6 +10,7 @@ import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 import java.util.stream.StreamSupport;
 
@@ -19,11 +20,9 @@ public class UserDataModelConfig {
     @Autowired
     DSLContext dsl;
 
-    @Autowired
-    SimpleGeneralAuditablePopulator auditablePopulator;
-
     @Bean
-    public CRUDDAO<AppUserDataObject, Integer> userCRUDDAO() {
+    @Lazy
+    public CRUDDAO<AppUserDataObject, Integer> userCRUDDAO(SimpleGeneralAuditablePopulator auditablePopulator) {
         return ConfigurableGenericJOOQCRUDDAO
                 .<AppUserDataObject, Integer, AppUserRecord>builder()
                 .modelClass(AppUserDataObject.class)
