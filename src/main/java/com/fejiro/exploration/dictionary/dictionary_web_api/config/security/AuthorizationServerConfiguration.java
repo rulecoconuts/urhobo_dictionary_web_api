@@ -21,7 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.UUID;
 
-@Configuration
+//@Configuration
 public class AuthorizationServerConfiguration {
 
     /**
@@ -44,6 +44,7 @@ public class AuthorizationServerConfiguration {
                                                           AuthorizationGrantType.AUTHORIZATION_CODE)
                                                   .authorizationGrantType(
                                                           AuthorizationGrantType.REFRESH_TOKEN)
+                                                  .redirectUri("127.0.0.1/login")
                                                   .build();
 
         return new InMemoryRegisteredClientRepository(client);
@@ -75,7 +76,7 @@ public class AuthorizationServerConfiguration {
     SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests((authorize) -> authorize.anyRequest().authenticated())
             .oauth2Login(Customizer.withDefaults())
-            .httpBasic(Customizer.withDefaults());
+            .formLogin(Customizer.withDefaults());
 
         return http.build();
     }
