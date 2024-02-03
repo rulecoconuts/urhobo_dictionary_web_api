@@ -95,7 +95,7 @@ public class CustomJOOQBackedUserService implements UserService {
      */
     void throwIfDataModelIsInvalidForCreation(
             AppUserDataObject dataObject) throws IllegalArgumentExceptionWithMessageMap {
-        Map<String, String> errors = new HashMap<>();
+        Map<String, String> errors = validateDataModelForCreation(dataObject);
 
         if (!errors.isEmpty())
             throw new IllegalArgumentExceptionWithMessageMap("Error with creation of app user", errors);

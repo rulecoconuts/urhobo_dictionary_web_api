@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,8 +30,9 @@ public class SecurityFilterChainConfiguration {
         AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
 
         return http
+                .securityMatcher("/api/login/**")
                 .authorizeHttpRequests(authorize ->
-                                               authorize.requestMatchers("/api/login**")
+                                               authorize.requestMatchers("/api/login/**")
                                                         .anonymous())
                 .addFilter(new JwtAuthenticationFilter(authenticationManager, jwtGenerator))
                 .sessionManagement(
@@ -43,6 +45,21 @@ public class SecurityFilterChainConfiguration {
 
     @Bean
     @Order(2)
+    SecurityFilterChain anonymousFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/api/users/register/**")
+                .authorizeHttpRequests(authorize -> authorize.requestMatchers("/api/users/register/**").anonymous())
+                .anonymous(Customizer.withDefaults())
+                .sessionManagement(
+                        sessionManager -> sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(cors ->
+                              cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
+                .build();
+    }
+
+    @Bean
+    @Order(3)
     SecurityFilterChain defaultFilterChain(HttpSecurity http, JwtGenerator jwtGenerator,
                                            AuthenticationConfiguration authenticationConfiguration) throws Exception {
         AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
