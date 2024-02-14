@@ -1,11 +1,9 @@
-package com.fejiro.exploration.dictionary.dictionary_web_api.security;
+package com.fejiro.exploration.dictionary.dictionary_web_api.security.data;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Permission;
-import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Word;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.PermissionRecord;
 import org.jooq.*;
-import org.jooq.Record;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,23 +14,23 @@ import java.util.stream.StreamSupport;
 import static org.jooq.impl.DSL.row;
 
 @Component
-public class PermissionCRUDDAO implements CRUDDAO<PermissionDomainObject, Integer> {
+public class PermissionCRUDDAO implements CRUDDAO<PermissionDataObject, Integer> {
     @Autowired
     DSLContext dsl;
 
     /**
      * Create a permission.
      *
-     * @param model Model to be created. {@link PermissionDomainObject#id} must be null
+     * @param model Model to be created. {@link PermissionDataObject#id} must be null
      * @return
      */
     @Override
-    public PermissionDomainObject create(PermissionDomainObject model) {
+    public PermissionDataObject create(PermissionDataObject model) {
         if (model.getId() != null) throw new IllegalArgumentException("Permission to be created has a non-null id");
         PermissionRecord record = dsl.newRecord(Permission.PERMISSION, model);
         record.store();
 
-        return record.into(PermissionDomainObject.class);
+        return record.into(PermissionDataObject.class);
     }
 
     RowN convertRecordToRow(PermissionRecord record, List<Field<?>> fields) {
@@ -43,15 +41,17 @@ public class PermissionCRUDDAO implements CRUDDAO<PermissionDomainObject, Intege
     }
 
     @Override
-    public Iterable<PermissionDomainObject> createAll(Iterable<PermissionDomainObject> models) {
-        List<PermissionDomainObject> toBeCreatedCollection = StreamSupport.stream(models.spliterator(), false)
-                                                                          .toList();
+    public Iterable<PermissionDataObject> createAll(Iterable<PermissionDataObject> models) {
+        List<PermissionDataObject> toBeCreatedCollection = StreamSupport.stream(models.spliterator(), false)
+                                                                        .toList();
         boolean anyIdsNotNull = toBeCreatedCollection.stream()
-                                                     .anyMatch(permissionDomainObject -> permissionDomainObject.id != null);
+                                                     .anyMatch(permissionDataObject -> permissionDataObject.id != null);
 
         if (anyIdsNotNull) throw new IllegalArgumentException("Permission to be created has a non-null id");
         List<PermissionRecord> recordsToBeCreated = toBeCreatedCollection.stream()
-                                                                         .map(permissionDomainObject -> dsl.newRecord(Permission.PERMISSION, permissionDomainObject))
+                                                                         .map(permissionDataObject -> dsl.newRecord(
+                                                                                 Permission.PERMISSION,
+                                                                                 permissionDataObject))
                                                                          .toList();
         var fieldsToInsert = Arrays.stream(Permission.PERMISSION.fields())
                                    .filter(field -> !Optional.of(field.getQualifiedName())
@@ -61,14 +61,15 @@ public class PermissionCRUDDAO implements CRUDDAO<PermissionDomainObject, Intege
                                    .toList();
 
         List<RowN> valueRows = recordsToBeCreated.stream()
-                                                 .map(permissionRecord -> convertRecordToRow(permissionRecord, fieldsToInsert))
+                                                 .map(permissionRecord -> convertRecordToRow(permissionRecord,
+                                                                                             fieldsToInsert))
                                                  .toList();
 
         return dsl.insertInto(Permission.PERMISSION)
                   .columns(fieldsToInsert)
                   .valuesOfRows(valueRows)
                   .returning()
-                  .fetchInto(PermissionDomainObject.class);
+                  .fetchInto(PermissionDataObject.class);
     }
 
     /**
@@ -78,63 +79,62 @@ public class PermissionCRUDDAO implements CRUDDAO<PermissionDomainObject, Intege
      * @return
      */
     @Override
-    public PermissionDomainObject update(PermissionDomainObject model) {
+    public PermissionDataObject update(PermissionDataObject model) {
         if (model.getId() == null) throw new IllegalArgumentException("Permission to be created has a null id");
         PermissionRecord record = dsl.newRecord(Permission.PERMISSION, model);
         record.store();
 
-        return record.into(PermissionDomainObject.class);
+        return record.into(PermissionDataObject.class);
     }
 
     @Override
-    public Iterable<PermissionDomainObject> updateAll(Iterable<PermissionDomainObject> models) {
-        UpdateSetFirstStep<PermissionRecord> permissionUpdateFirstStep = dsl.update(Permission.PERMISSION);
+    public Iterable<PermissionDataObject> updateAll(Iterable<PermissionDataObject> models) {
         List<PermissionRecord> records = StreamSupport.stream(models.spliterator(), false)
                                                       .map(model -> dsl.newRecord(Permission.PERMISSION, model))
                                                       .toList();
 
         dsl.batchUpdate(records).execute();
-        return records.stream().map(permissionRecord -> permissionRecord.into(PermissionDomainObject.class))
+        return records.stream().map(permissionRecord -> permissionRecord.into(PermissionDataObject.class))
                       .toList();
     }
 
     @Override
-    public PermissionDomainObject retrieveById(Integer id) {
-        return dsl.select()
-                  .from(Permission.PERMISSION)
-                  .where(Permission.PERMISSION.ID.eq(id))
-                  .fetchOneInto(PermissionDomainObject.class);
+    public Optional<PermissionDataObject> retrieveById(Integer id) {
+        return Optional.ofNullable(dsl.select()
+                                      .from(Permission.PERMISSION)
+                                      .where(Permission.PERMISSION.ID.eq(id))
+                                      .fetchOneInto(PermissionDataObject.class));
     }
 
     @Override
-    public Iterable<PermissionDomainObject> retrieveAll() {
+    public Iterable<PermissionDataObject> retrieveAll() {
         return dsl.select().from(Permission.PERMISSION)
-                  .fetchInto(PermissionDomainObject.class);
+                  .fetchInto(PermissionDataObject.class);
     }
 
     @Override
-    public Iterable<PermissionDomainObject> retrieveAllById(Iterable<Integer> ids) {
+    public Iterable<PermissionDataObject> retrieveAllById(Iterable<Integer> ids) {
         return dsl.select().from(Permission.PERMISSION)
                   .where(Permission.PERMISSION.ID.in(StreamSupport.stream(ids.spliterator(), false)
                                                                   .collect(Collectors.toUnmodifiableSet())))
-                  .fetchInto(PermissionDomainObject.class);
+                  .fetchInto(PermissionDataObject.class);
     }
 
-    public PermissionDomainObject retrieveByName(String name) {
+    public PermissionDataObject retrieveByName(String name) {
         return dsl.select().from(Permission.PERMISSION)
                   .where(Permission.PERMISSION.NAME.eq(name))
-                  .fetchOneInto(PermissionDomainObject.class);
+                  .fetchOneInto(PermissionDataObject.class);
     }
 
-    public Iterable<PermissionDomainObject> retrieveAllByName(Iterable<String> names) {
+    public Iterable<PermissionDataObject> retrieveAllByName(Iterable<String> names) {
         return dsl.select().from(Permission.PERMISSION)
                   .where(Permission.PERMISSION.NAME.in(StreamSupport.stream(names.spliterator(), false)
                                                                     .collect(Collectors.toUnmodifiableSet())))
-                  .fetchInto(PermissionDomainObject.class);
+                  .fetchInto(PermissionDataObject.class);
     }
 
     @Override
-    public void delete(PermissionDomainObject model) {
+    public void delete(PermissionDataObject model) {
         deleteById(model.getId());
     }
 
@@ -146,9 +146,9 @@ public class PermissionCRUDDAO implements CRUDDAO<PermissionDomainObject, Intege
     }
 
     @Override
-    public void deleteAll(Iterable<PermissionDomainObject> models) {
+    public void deleteAll(Iterable<PermissionDataObject> models) {
         List<Integer> ids = StreamSupport.stream(models.spliterator(), false)
-                                         .map(PermissionDomainObject::getId)
+                                         .map(PermissionDataObject::getId)
                                          .filter(Objects::nonNull)
                                          .toList();
         deleteAllById(ids);

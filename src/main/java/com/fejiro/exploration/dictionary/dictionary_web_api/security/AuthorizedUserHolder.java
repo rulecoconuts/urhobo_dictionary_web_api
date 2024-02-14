@@ -1,5 +1,11 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.security;
 
-public interface AuthorizedUserHolder {
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDomainObject;
 
+public interface AuthorizedUserHolder {
+    Integer getId();
+
+    AppUserDomainObject getUser();
+
+    void setUser(AppUserDomainObject user);
 }

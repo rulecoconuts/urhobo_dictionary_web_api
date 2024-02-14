@@ -1,4 +1,4 @@
-package com.fejiro.exploration.dictionary.dictionary_web_api.security;
+package com.fejiro.exploration.dictionary.dictionary_web_api.security.data;
 
 
 import lombok.*;
@@ -7,7 +7,7 @@ import lombok.*;
 @AllArgsConstructor
 @RequiredArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class PermissionDomainObject {
+public class PermissionDataObject {
     @EqualsAndHashCode.Include
     Integer id;
 
