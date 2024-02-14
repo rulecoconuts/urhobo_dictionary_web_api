@@ -15,7 +15,6 @@ public class AppUserDomainObject implements TemporalAuditable, ShallowCloneable<
     @EqualsAndHashCode.Include
     Integer id;
 
-    @EqualsAndHashCode.Include
     String username;
 
     @EqualsAndHashCode.Include

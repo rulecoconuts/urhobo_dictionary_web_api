@@ -53,7 +53,7 @@ public class JwtGenerator {
     Authentication parseToken(String token) {
         Jws<Claims> claims = Jwts.parser()
                                  .setSigningKey(jwtConfigProperties.getSecret().getBytes())
-                                 .parseClaimsJws(token);
+                                 .build().parseSignedClaims(token);
         Integer id = Integer.parseInt(claims.getBody().getSubject());
 
         Optional<AppUserDomainObject> user = userService.retrieveById(id);

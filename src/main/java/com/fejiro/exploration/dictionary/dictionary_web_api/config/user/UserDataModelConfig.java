@@ -48,7 +48,7 @@ public class UserDataModelConfig {
 
                     if (user.getId() != null) return "User to be created has a non-null id";
 
-                    if (user.getUsername() == null || user.getUsername().isBlank())
+                    if (user.getUsername() != null && user.getUsername().isBlank())
                         return "UserName is blank";
                     return null;
                 })

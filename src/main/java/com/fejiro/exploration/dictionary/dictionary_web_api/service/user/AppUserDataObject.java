@@ -14,7 +14,6 @@ public class AppUserDataObject implements TemporalAuditable {
     @EqualsAndHashCode.Include
     Integer id;
 
-    @EqualsAndHashCode.Include
     String username;
 
     @EqualsAndHashCode.Include

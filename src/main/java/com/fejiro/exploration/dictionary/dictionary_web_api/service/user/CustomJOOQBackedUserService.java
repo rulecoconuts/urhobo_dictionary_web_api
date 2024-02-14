@@ -5,8 +5,10 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQ
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.IllegalArgumentExceptionWithMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.AppUser;
 import org.apache.commons.validator.routines.EmailValidator;
+import org.jooq.Condition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -50,9 +52,13 @@ public class CustomJOOQBackedUserService implements UserService {
      */
     Map<String, String> validateDataModelForCreation(AppUserDataObject dataObject) {
         // Make sure email and username are unique
+        Condition condition = AppUser.APP_USER.EMAIL.eq(dataObject.getEmail());
+        if (dataObject.getUsername() != null) {
+            condition = condition.or(AppUser.APP_USER.USERNAME.eq(dataObject.getUsername()));
+        }
+
         Iterable<AppUserDataObject> matches = ((GenericJOOQCRUDDAO<AppUserDataObject, Integer, ?>) userDAO).retrieveAll(
-                AppUser.APP_USER.EMAIL.eq(dataObject.getEmail())
-                                      .or(AppUser.APP_USER.USERNAME.eq(dataObject.getUsername()))
+                condition
         );
 
         Map<String, String> errors = new HashMap<>();
@@ -60,7 +66,7 @@ public class CustomJOOQBackedUserService implements UserService {
         matches.forEach((match) -> {
             if (match.getEmail().equals(dataObject.getEmail()))
                 errors.put("email", String.format("Email %s already exists", dataObject.getEmail()));
-            if (match.getUsername().equals(dataObject.getUsername()))
+            if (dataObject.getUsername() != null && match.getUsername().equals(dataObject.getUsername()))
                 errors.put("username", String.format("Username %s already exists", dataObject.getUsername()));
         });
 
@@ -72,9 +78,9 @@ public class CustomJOOQBackedUserService implements UserService {
             errors.put("firstName", "First name cannot be blank");
         }
 
-        if (dataObject.getUsername() == null || dataObject.getUsername().trim().isEmpty()) {
+        if (dataObject.getUsername() != null && dataObject.getUsername().trim().isEmpty()) {
             errors.put("username", "Username cannot be blank");
-        } else if (dataObject.getUsername().contains("@")) {
+        } else if (dataObject.getUsername() != null && dataObject.getUsername().contains("@")) {
             errors.put("username", "Username cannot contain '@'");
         }
 
@@ -98,7 +104,8 @@ public class CustomJOOQBackedUserService implements UserService {
         Map<String, String> errors = validateDataModelForCreation(dataObject);
 
         if (!errors.isEmpty())
-            throw new IllegalArgumentExceptionWithMessageMap("Error with creation of app user", errors);
+            throw new IllegalArgumentExceptionWithMessageMap("Error with creation of app user", errors,
+                                                             HttpStatus.BAD_REQUEST);
     }
 
     /**

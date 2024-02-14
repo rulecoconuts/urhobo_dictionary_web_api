@@ -11,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
@@ -27,9 +28,11 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     JwtGenerator jwtGenerator;
 
     public JwtAuthenticationFilter(
-            AuthenticationManager authenticationManager, JwtGenerator jwtGenerator) {
+            AuthenticationManager authenticationManager, JwtGenerator jwtGenerator,
+            AuthenticationFailureHandler authenticationFailureHandler) {
         super(authenticationManager);
         setFilterProcessesUrl("/api/login");
+        setAuthenticationFailureHandler(authenticationFailureHandler);
         this.jwtGenerator = jwtGenerator;
     }
 
