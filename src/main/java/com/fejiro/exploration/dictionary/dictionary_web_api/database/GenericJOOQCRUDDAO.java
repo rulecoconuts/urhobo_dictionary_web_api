@@ -402,4 +402,10 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
                              .where(getIdEqCondition(ids))
                              .execute();
     }
+
+    default void delete(Condition condition) {
+        int result = getDsl().delete(getTable())
+                             .where(condition)
+                             .execute();
+    }
 }
