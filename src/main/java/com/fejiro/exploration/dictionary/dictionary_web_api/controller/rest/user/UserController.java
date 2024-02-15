@@ -32,7 +32,7 @@ public class UserController {
     ResponseEntity register(@RequestBody AppUserDomainObject user) throws IllegalArgumentExceptionWithMessageMap {
         logger.info("About to register new user");
         var createdUser = userService.create(user);
-        return ResponseEntity.ok("Successfully created user");
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/refresh")
