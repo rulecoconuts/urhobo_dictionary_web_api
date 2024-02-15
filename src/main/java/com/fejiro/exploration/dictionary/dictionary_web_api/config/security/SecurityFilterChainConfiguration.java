@@ -5,6 +5,7 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.security.RESTExcepti
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt.JwtAuthenticationFilter;
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt.JwtAuthorizationFilter;
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt.JwtGenerator;
+import com.fejiro.exploration.dictionary.dictionary_web_api.security.refresh_token.SimpleJwtAndRefresherTokenGenerationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +34,9 @@ public class SecurityFilterChainConfiguration {
     @Autowired
     RESTExceptionHandlerBackedAuthenticationFailureHandler authenticationFailureHandler;
 
+    @Autowired
+    SimpleJwtAndRefresherTokenGenerationService jwtAndRefresherTokenGenerationService;
+
     @Bean
     @Order(1)
     SecurityFilterChain authenticationFilterChain(HttpSecurity http, JwtGenerator jwtGenerator,
@@ -46,7 +50,8 @@ public class SecurityFilterChainConfiguration {
                                                         .anonymous())
                 .addFilterAfter(filterChainExceptionHandler, LogoutFilter.class)
                 .addFilter(
-                        new JwtAuthenticationFilter(authenticationManager, jwtGenerator, authenticationFailureHandler))
+                        new JwtAuthenticationFilter(authenticationManager, jwtAndRefresherTokenGenerationService,
+                                                    authenticationFailureHandler))
                 .sessionManagement(
                         sessionManager -> sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors ->
@@ -59,8 +64,10 @@ public class SecurityFilterChainConfiguration {
     @Order(2)
     SecurityFilterChain anonymousFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/users/register/**")
-                .authorizeHttpRequests(authorize -> authorize.requestMatchers("/api/users/register/**").anonymous())
+                .securityMatcher("/api/users/register/**", "api/users/refresh/**")
+                .authorizeHttpRequests(
+                        authorize -> authorize.requestMatchers("/api/users/register/**", "api/users/refresh/**")
+                                              .anonymous())
                 .anonymous(Customizer.withDefaults())
                 .sessionManagement(
                         sessionManager -> sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

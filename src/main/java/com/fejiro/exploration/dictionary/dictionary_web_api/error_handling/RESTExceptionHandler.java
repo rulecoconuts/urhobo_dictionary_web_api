@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 @RestControllerAdvice(basePackages = "com.fejiro.exploration.dictionary.dictionary_web_api.controller.rest")
@@ -34,12 +36,28 @@ public class RESTExceptionHandler extends ResponseEntityExceptionHandler {
         ApiError error = ApiError.builder()
                                  .status(HttpStatus.FORBIDDEN)
                                  .message(authenticationException.getMessage())
-                                 .timestamp(OffsetDateTime.now())
+                                 .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
                                  .build();
 
         return convertApiErrorToResponseEntity(error);
     }
 
+    /**
+     * Handle non-specified uncaught exceptions
+     *
+     * @param exception
+     * @return
+     */
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<Object> handleAllUncaughtExceptions(Exception exception) {
+        ApiError error = ApiError.builder()
+                                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                 .message(exception.getMessage())
+                                 .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+                                 .build();
+
+        return convertApiErrorToResponseEntity(error);
+    }
 
     ResponseEntity<Object> convertApiErrorToResponseEntity(ApiError error) {
         return ResponseEntity.status(error.getStatus())

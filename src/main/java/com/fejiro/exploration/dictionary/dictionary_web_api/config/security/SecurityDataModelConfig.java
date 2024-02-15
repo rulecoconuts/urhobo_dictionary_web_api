@@ -7,10 +7,13 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.security.data.Permis
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.data.RoleDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.data.RolePermissionDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.data.RolePermissionDataObjectId;
+import com.fejiro.exploration.dictionary.dictionary_web_api.security.refresh_token.RefreshTokenDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Permission;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.RefreshToken;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Role;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.RolePermission;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.PermissionRecord;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.RefreshTokenRecord;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.RolePermissionRecord;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.records.RoleRecord;
 import org.jooq.Condition;
@@ -100,6 +103,30 @@ public class SecurityDataModelConfig {
                 .updatePreProcessFunction(rolePermissionDataObject -> {
                     auditablePopulator.populateForUpdate(rolePermissionDataObject);
                     return rolePermissionDataObject;
+                })
+                .build();
+    }
+
+    @Bean
+    CRUDDAO<RefreshTokenDataObject, Long> getRefreshTokenDAO() {
+        return ConfigurableGenericJOOQCRUDDAO
+                .<RefreshTokenDataObject, Long, RefreshTokenRecord>builder()
+                .modelClass(RefreshTokenDataObject.class)
+                .dslContext(dsl)
+                .table(RefreshToken.REFRESH_TOKEN)
+                .idMatchConditionGenerator(RefreshToken.REFRESH_TOKEN.ID::eq)
+                .idCollectionMatchConditionGenerator(ids -> {
+                    return RefreshToken.REFRESH_TOKEN.ID.in(StreamSupport.stream(ids.spliterator(), false).collect(
+                            Collectors.toUnmodifiableSet()));
+                })
+                .idExtractionFunction(RefreshTokenDataObject::getId)
+                .creationPreProcessFunction(refreshTokenDataObject -> {
+                    auditablePopulator.populateForCreation(refreshTokenDataObject);
+                    return refreshTokenDataObject;
+                })
+                .updatePreProcessFunction(refreshTokenDataObject -> {
+                    auditablePopulator.populateForUpdate(refreshTokenDataObject);
+                    return refreshTokenDataObject;
                 })
                 .build();
     }

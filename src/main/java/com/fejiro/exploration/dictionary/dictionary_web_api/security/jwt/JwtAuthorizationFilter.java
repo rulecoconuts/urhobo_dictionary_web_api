@@ -42,6 +42,6 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
             token = token.replaceFirst("Bearer ", "");
         }
 
-        return jwtGenerator.parseToken(token);
+        return jwtGenerator.parseTokenIntoAuthentication(token);
     }
 }

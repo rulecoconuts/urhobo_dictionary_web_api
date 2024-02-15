@@ -1,9 +1,12 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt;
 
+import com.fejiro.exploration.dictionary.dictionary_web_api.security.refresh_token.SimpleJwtAndRefreshToken;
+import com.fejiro.exploration.dictionary.dictionary_web_api.security.refresh_token.SimpleJwtAndRefresherTokenGenerationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.SneakyThrows;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -25,15 +28,16 @@ import java.util.stream.Collectors;
  * for valid credentials.
  */
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
-    JwtGenerator jwtGenerator;
+    SimpleJwtAndRefresherTokenGenerationService jwtAndRefresherTokenGenerationService;
 
     public JwtAuthenticationFilter(
-            AuthenticationManager authenticationManager, JwtGenerator jwtGenerator,
+            AuthenticationManager authenticationManager,
+            SimpleJwtAndRefresherTokenGenerationService jwtAndRefresherTokenGenerationService,
             AuthenticationFailureHandler authenticationFailureHandler) {
         super(authenticationManager);
         setFilterProcessesUrl("/api/login");
         setAuthenticationFailureHandler(authenticationFailureHandler);
-        this.jwtGenerator = jwtGenerator;
+        this.jwtAndRefresherTokenGenerationService = jwtAndRefresherTokenGenerationService;
     }
 
     @Override
@@ -100,11 +104,13 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         return request.getParameter("email");
     }
 
+    @SneakyThrows
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
                                             Authentication authResult) throws IOException, ServletException {
-        String token = jwtGenerator.generateToken(authResult);
+        SimpleJwtAndRefreshToken simpleJwtAndRefreshToken = jwtAndRefresherTokenGenerationService.generate(authResult);
 //        super.successfulAuthentication(request, response, chain, authResult);
-        response.addHeader(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", token));
+        response.addHeader(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", simpleJwtAndRefreshToken.getToken()));
+        response.addHeader("Refresh-Token", simpleJwtAndRefreshToken.getRefreshToken().getContent());
     }
 }

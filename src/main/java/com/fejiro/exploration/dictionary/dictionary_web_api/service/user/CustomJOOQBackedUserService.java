@@ -40,7 +40,8 @@ public class CustomJOOQBackedUserService implements UserService {
         return toDomain(userDAO.create(dataObject));
     }
 
-    Map<String, String> validateModelForCreation(AppUserDomainObject model) {
+    @Override
+    public Map<String, String> validateModelForCreation(AppUserDomainObject model) {
         return validateDataModelForCreation(toData(model));
     }
 
@@ -114,7 +115,8 @@ public class CustomJOOQBackedUserService implements UserService {
      * @param model
      * @throws IllegalArgumentExceptionWithMessageMap
      */
-    void throwIfModelIsInvalidForCreation(AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
+    public void throwIfModelIsInvalidForCreation(
+            AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
         throwIfDataModelIsInvalidForCreation(toData(model));
     }
 
@@ -247,6 +249,17 @@ public class CustomJOOQBackedUserService implements UserService {
                                            .spliterator(), false)
                             .map(this::toDomain)
                             .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Map<String, String> validateModelForUpdate(AppUserDomainObject model) {
+        return null;
+    }
+
+    @Override
+    public void throwIfModelIsInvalidForUpdate(
+            AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
+
     }
 
     @Override
