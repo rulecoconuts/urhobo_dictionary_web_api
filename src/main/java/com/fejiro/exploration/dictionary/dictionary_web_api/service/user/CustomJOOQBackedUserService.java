@@ -251,7 +251,8 @@ public class CustomJOOQBackedUserService implements UserService {
 
     @Override
     public Optional<AppUserDomainObject> retrieveById(Integer id) {
-        return Optional.empty();
+        return userDAO.retrieveById(id)
+                      .map(dataObject -> toDomain(dataObject));
     }
 
     @Override

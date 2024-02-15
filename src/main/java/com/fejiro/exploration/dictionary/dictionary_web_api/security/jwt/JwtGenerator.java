@@ -7,12 +7,17 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.Key;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -33,8 +38,9 @@ public class JwtGenerator {
         OffsetDateTime issuedAt = OffsetDateTime.now();
         OffsetDateTime expirationDate = getExpirationDate(issuedAt);
 
+
         return Jwts.builder()
-                   .signWith(SignatureAlgorithm.HS512, jwtConfigProperties.getSecret())
+                   .signWith(getSecretKey(), Jwts.SIG.HS512)
                    .setSubject(userDetails.getUserDomainObject().getId().toString())
                    .setAudience(jwtConfigProperties.getAudience())
                    .setIssuer(jwtConfigProperties.getIssuer())
@@ -42,6 +48,11 @@ public class JwtGenerator {
                    .setExpiration(Date.from(expirationDate.toInstant()))
                    .setHeaderParam("typ", jwtConfigProperties.getType())
                    .compact();
+    }
+
+    SecretKey getSecretKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(jwtConfigProperties.getSecret());
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     OffsetDateTime getExpirationDate(OffsetDateTime issuedAt) {
@@ -52,7 +63,7 @@ public class JwtGenerator {
 
     Authentication parseToken(String token) {
         Jws<Claims> claims = Jwts.parser()
-                                 .setSigningKey(jwtConfigProperties.getSecret().getBytes())
+                                 .verifyWith(getSecretKey())
                                  .build().parseSignedClaims(token);
         Integer id = Integer.parseInt(claims.getBody().getSubject());
 
@@ -60,6 +71,6 @@ public class JwtGenerator {
 
         if (user.isEmpty()) return null;
 
-        return new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>());
+        return new UsernamePasswordAuthenticationToken(user.get(), null, new ArrayList<>());
     }
 }

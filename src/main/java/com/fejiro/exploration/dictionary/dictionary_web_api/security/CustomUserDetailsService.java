@@ -31,14 +31,14 @@ public class CustomUserDetailsService implements UserDetailsService {
             userData = userService.findByUsername(username);
         }
 
-        return userData.map(this::convertUserDomainDataToUserDetails)
+        return userData.map((user) -> convertUserDomainDataToUserDetails(user, username))
                        .orElseThrow(
                                () -> new UsernameNotFoundException("Unable to find user with the supplied email"));
     }
 
-    UserDetails convertUserDomainDataToUserDetails(AppUserDomainObject userDomainObject) {
+    UserDetails convertUserDomainDataToUserDetails(AppUserDomainObject userDomainObject, String username) {
         List<? extends GrantedAuthority> authorities = new ArrayList<>();
-        return new CustomSecurityUserDetails(userDomainObject.getEmail(), userDomainObject.getPassword(), authorities,
+        return new CustomSecurityUserDetails(username, userDomainObject.getPassword(), authorities,
                                              userDomainObject);
     }
 }
