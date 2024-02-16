@@ -25,7 +25,7 @@ public class LanguageDataModelConfig {
 
     @Bean
     @Lazy
-    CRUDDAO<LanguageDataObject, Integer> userCRUDDAO(SimpleGeneralAuditablePopulator auditablePopulator) {
+    CRUDDAO<LanguageDataObject, Integer> languageCRUDDAO(SimpleGeneralAuditablePopulator auditablePopulator) {
         return ConfigurableGenericJOOQCRUDDAO
                 .<LanguageDataObject, Integer, LanguageRecord>builder()
                 .modelClass(LanguageDataObject.class)

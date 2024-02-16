@@ -1,10 +1,12 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.service;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
+import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.ApiExceptionWithComplexObjectMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.IllegalArgumentExceptionWithMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDomainObject;
+import org.jooq.Condition;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -182,5 +184,18 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
         return StreamSupport.stream(getCRUDAO().retrieveAllById(ids).spliterator(), false)
                             .map(this::toDomain)
                             .toList();
+    }
+
+    default Iterable<T> retrieveAll(Condition condition) {
+        return StreamSupport.stream(((GenericJOOQCRUDDAO<D, I, ?>) getCRUDAO()).retrieveAll(condition).spliterator(),
+                                    false)
+                            .map(this::toDomain)
+                            .toList();
+    }
+
+    default Optional<T> retrieveOne(Condition condition) {
+        return ((GenericJOOQCRUDDAO<D, I, ?>) getCRUDAO()).retrieveOne(condition)
+                                                          .map(this::toDomain);
+
     }
 }
