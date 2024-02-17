@@ -155,6 +155,11 @@ public class CustomJOOQBackedUserService implements UserService, GenericJOOQBack
         return String.format("%s_%s", model.getId(), model.getEmail());
     }
 
+    @Override
+    public Integer getId(AppUserDomainObject model) {
+        return model.getId();
+    }
+
     /**
      * Check if collection of user domain data is valid before creation
      *
@@ -240,29 +245,6 @@ public class CustomJOOQBackedUserService implements UserService, GenericJOOQBack
         // TODO: Add validation code
 
         return toDomain(userDAO.update(dataObject));
-    }
-
-    @Override
-    public Iterable<AppUserDomainObject> updateAll(Iterable<AppUserDomainObject> models) {
-        List<AppUserDataObject> dataObjects = StreamSupport.stream(models.spliterator(), false)
-                                                           .map(this::toData)
-                                                           .toList();
-
-        return StreamSupport.stream(userDAO.updateAll(dataObjects)
-                                           .spliterator(), false)
-                            .map(this::toDomain)
-                            .collect(Collectors.toSet());
-    }
-
-    @Override
-    public Map<String, String> validateModelForUpdate(AppUserDomainObject model) {
-        return null;
-    }
-
-    @Override
-    public void throwIfModelIsInvalidForUpdate(
-            AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
-
     }
 
     @Override

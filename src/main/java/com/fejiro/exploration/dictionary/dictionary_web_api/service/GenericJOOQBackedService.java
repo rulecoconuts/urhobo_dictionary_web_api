@@ -11,10 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.StreamSupport;
 
 public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, ConversionServiceDataBackedService<T, D> {
@@ -95,27 +92,55 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
     String generateErrorLabel(T model);
 
     @Override
-    default Map<String, String> validateModelForUpdate(T model) {
+    default Map<String, String> validateModelForUpdate(T model, Optional<T>
+            existingCopy) {
         return new HashMap<>();
     }
 
     @Override
-    default void throwIfModelIsInvalidForUpdate(T model) throws IllegalArgumentExceptionWithMessageMap {
-        Map<String, String> errors = validateModelForUpdate(model);
+    default void throwIfModelIsInvalidForUpdate(T model,
+                                                Optional<T> existingCopy) throws IllegalArgumentExceptionWithMessageMap {
+        Map<String, String> errors = validateModelForUpdate(model, existingCopy);
         if (!errors.isEmpty())
             throw new IllegalArgumentExceptionWithMessageMap("Error with update of domain model", errors,
                                                              HttpStatus.BAD_REQUEST);
     }
 
-    default T preProcessBeforeUpdate(T model) {
+    default T preProcessBeforeUpdate(T model, Optional<T> existingCopy) {
         return model;
+    }
+
+    I getId(T model);
+
+    default Iterable<T> preProcessBeforeUpdate(Iterable<T> models, Collection<T> existingCopies) {
+        return StreamSupport.stream(models.spliterator(), false)
+                            .map(model -> {
+                                var exisitingCopy = existingCopies.stream().filter(c -> getId(c).equals(getId(model)))
+                                                                  .findFirst();
+                                if (exisitingCopy.isEmpty()) return Optional.<T>empty();
+                                return Optional.ofNullable(preProcessBeforeUpdate(model, exisitingCopy));
+                            })
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .toList();
+    }
+
+    /**
+     * Get the copy of a model that exists in the database
+     *
+     * @param model
+     * @return
+     */
+    default Optional<T> getExistingCopy(T model) {
+        return retrieveById(getId(model));
     }
 
     @Override
     default T update(T model) throws IllegalArgumentExceptionWithMessageMap {
-        throwIfModelIsInvalidForUpdate(model);
+        Optional<T> existingCopy = getExistingCopy(model);
+        throwIfModelIsInvalidForUpdate(model, existingCopy);
 
-        T preProcessedModel = preProcessBeforeUpdate(model);
+        T preProcessedModel = preProcessBeforeUpdate(model, existingCopy);
 
         D dataObject = toData(preProcessedModel);
 
@@ -129,13 +154,14 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
     }
 
     @Override
-    default Map<T, Map<String, String>> validateModelsForUpdate(Iterable<T> models) {
+    default Map<T, Map<String, String>> validateModelsForUpdate(Iterable<T> models, Iterable<T> existingCopies) {
         return new HashMap<>();
     }
 
     @Override
-    default void throwIfModelsAreInvalidForUpdate(Iterable<T> models) throws ApiExceptionWithComplexObjectMessageMap {
-        Map<T, Map<String, String>> errors = validateModelsForUpdate(models);
+    default void throwIfModelsAreInvalidForUpdate(Iterable<T> models,
+                                                  Iterable<T> existingCopies) throws ApiExceptionWithComplexObjectMessageMap {
+        Map<T, Map<String, String>> errors = validateModelsForUpdate(models, existingCopies);
         if (errors.isEmpty()) return;
 
         throw new ApiExceptionWithComplexObjectMessageMap("Error while updating domain models",
@@ -196,6 +222,7 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
     default Optional<T> retrieveOne(Condition condition) {
         return ((GenericJOOQCRUDDAO<D, I, ?>) getCRUDAO()).retrieveOne(condition)
                                                           .map(this::toDomain);
-
     }
+
+
 }

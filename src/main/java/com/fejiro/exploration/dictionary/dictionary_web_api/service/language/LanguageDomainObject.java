@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 
 import java.time.OffsetDateTime;
 
-@Builder
+@Builder(toBuilder = true)
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class LanguageDomainObject implements UserAuditable, TemporalAuditable {

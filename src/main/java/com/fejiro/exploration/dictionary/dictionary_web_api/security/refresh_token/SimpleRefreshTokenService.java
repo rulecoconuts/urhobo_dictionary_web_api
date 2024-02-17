@@ -110,6 +110,11 @@ public class SimpleRefreshTokenService implements RefreshTokenService<String>,
     }
 
     @Override
+    public Long getId(RefreshTokenDomainObject model) {
+        return model.getId();
+    }
+
+    @Override
     public Map<String, String> validateModelForCreation(RefreshTokenDomainObject model) {
         return null;
     }
@@ -178,16 +183,5 @@ public class SimpleRefreshTokenService implements RefreshTokenService<String>,
     @Override
     public Iterable<RefreshTokenDomainObject> updateAll(Iterable<RefreshTokenDomainObject> models) {
         return null;
-    }
-
-    @Override
-    public Map<String, String> validateModelForUpdate(RefreshTokenDomainObject model) {
-        return null;
-    }
-
-    @Override
-    public void throwIfModelIsInvalidForUpdate(
-            RefreshTokenDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
-
     }
 }

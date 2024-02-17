@@ -269,9 +269,8 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
         if (error != null) throw new IllegalArgumentException(error);
         T preProcessedModel = preProcessDataForUpdate(model);
         R record = generateUpdatableRecord(preProcessedModel);
-
-        record.store();
-
+        record.update();
+        
         return record.into((Class<? extends T>) model.getClass());
     }
 

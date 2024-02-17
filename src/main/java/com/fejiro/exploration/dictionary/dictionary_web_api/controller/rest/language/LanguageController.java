@@ -42,6 +42,13 @@ public class LanguageController {
         return ResponseEntity.ok(languageService.create(language));
     }
 
+    @PutMapping
+    ResponseEntity<LanguageDomainObject> update(
+            @RequestBody LanguageDomainObject language) throws IllegalArgumentExceptionWithMessageMap {
+
+        return ResponseEntity.ok(languageService.update(language));
+    }
+
     /**
      * Delete a language
      *

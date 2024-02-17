@@ -10,8 +10,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Language service that uses JOOQ to handle data layer operations.
@@ -65,7 +67,7 @@ public class CustomJOOQBackedLanguageService implements LanguageService, Generic
         if (model.getName() == null || model.getName().isBlank()) {
             errors.put("name", "Language name is required");
         } else {
-            var existing = retrieveOne(Language.LANGUAGE.NAME.eq(model.getName()));
+            var existing = retrieveOne(Language.LANGUAGE.NAME.equalIgnoreCase(model.getName()));
 
             if (existing.isPresent()) errors.put("name", "Language name already exists");
         }
@@ -78,13 +80,14 @@ public class CustomJOOQBackedLanguageService implements LanguageService, Generic
     }
 
     @Override
-    public Map<String, String> validateModelForUpdate(LanguageDomainObject model) {
+    public Map<String, String> validateModelForUpdate(LanguageDomainObject model,
+                                                      Optional<LanguageDomainObject> existingCopy) {
         Map<String, String> errors = new HashMap<>();
 
         if (model.getName() == null || model.getName().isBlank()) {
             errors.put("name", "Language name is required");
         } else {
-            var existing = retrieveOne(Language.LANGUAGE.NAME.eq(model.getName()));
+            var existing = retrieveOne(Language.LANGUAGE.NAME.equalIgnoreCase(model.getName()));
 
             if (existing.isPresent() && model.getId() != null && !existing.get().getId().equals(model.getId()))
                 errors.put("name", "Language name already exists");
@@ -94,8 +97,24 @@ public class CustomJOOQBackedLanguageService implements LanguageService, Generic
             errors.put("id", "ID is required to update a language");
         } else if (model.getId() < 1) {
             errors.put("id", "ID must be greater than 0");
+        } else if (existingCopy.isEmpty()) {
+            errors.put("id", "ID does not exist in database");
         }
 
         return errors;
+    }
+
+    @Override
+    public Integer getId(LanguageDomainObject model) {
+        return model.getId();
+    }
+
+    @Override
+    public LanguageDomainObject preProcessBeforeUpdate(LanguageDomainObject model,
+                                                       Optional<LanguageDomainObject> existingCopy) {
+        LanguageDomainObject newModel = model.toBuilder().build();
+        newModel.setCreatedAt(existingCopy.get().getCreatedAt());
+        newModel.setCreatedBy(existingCopy.get().getCreatedBy());
+        return newModel;
     }
 }
