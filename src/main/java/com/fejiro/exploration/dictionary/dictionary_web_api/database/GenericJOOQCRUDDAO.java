@@ -1,6 +1,10 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.database;
 
 import org.jooq.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -128,6 +132,25 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
                      .toList();
     }
 
+    default List<Field<?>> getFieldsWithName(List<String> names) {
+        return Arrays.stream(getTable().fields())
+                     .filter(field -> !Optional.of(field.getQualifiedName())
+                                               .map(Name::last)
+                                               .map(names::contains)
+                                               .orElse(false))
+                     .sorted((a, b) -> {
+                         Integer aIndex = names.indexOf(a.getQualifiedName().last());
+                         Integer bIndex = names.indexOf(b.getQualifiedName().last());
+
+                         return aIndex.compareTo(bIndex);
+                     })
+                     .toList();
+    }
+
+    default Optional<Field<?>> getFieldWithName(String name) {
+        return getFieldsWithName(List.of(name)).stream().findFirst();
+    }
+
     /**
      * Convert a record to a row; only including values of the provided fields
      *
@@ -246,9 +269,8 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
         if (error != null) throw new IllegalArgumentException(error);
         T preProcessedModel = preProcessDataForUpdate(model);
         R record = generateUpdatableRecord(preProcessedModel);
-
-        record.store();
-
+        record.update();
+        
         return record.into((Class<? extends T>) model.getClass());
     }
 
@@ -315,6 +337,23 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
                                            .fetchOneInto(getModelClass()));
     }
 
+
+    default Optional<T> retrieveOne(Condition condition, Collection<? extends OrderField<?>> orderFields) {
+        return Optional.ofNullable(getDsl().select()
+                                           .from(getTable())
+                                           .where(condition)
+                                           .orderBy(orderFields)
+                                           .fetchOneInto(getModelClass()));
+    }
+
+    default Optional<T> retrieveOne(Condition condition, Pageable pageable) {
+        return Optional.ofNullable(getDsl().select()
+                                           .from(getTable())
+                                           .where(condition)
+                                           .orderBy(getSortFields(pageable.getSort()))
+                                           .fetchOneInto(getModelClass()));
+    }
+
     default Iterable<T> retrieveAll(Condition condition) {
         return getDsl().select()
                        .from(getTable())
@@ -322,6 +361,53 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
                        .fetchInto(getModelClass());
     }
 
+    default Iterable<T> retrieveAll(Condition condition, Collection<? extends OrderField<?>> orderFields) {
+        return getDsl().select()
+                       .from(getTable())
+                       .where(condition)
+                       .orderBy(orderFields)
+                       .fetchInto(getModelClass());
+    }
+
+    default Page<T> retrieveAll(Condition condition, Pageable pageable) {
+        List<T> results = getDsl().select()
+                                  .from(getTable())
+                                  .where(condition)
+                                  .orderBy(getSortFields(pageable.getSort()))
+                                  .limit(pageable.getPageSize())
+                                  .offset(pageable.getOffset())
+                                  .fetchInto(getModelClass());
+        return new PageImpl<>(results, pageable, count(condition));
+    }
+
+    default long count(Condition condition) {
+        return getDsl()
+                .selectCount()
+                .from(getTable())
+                .where(condition)
+                .fetchOne(0, long.class);
+    }
+
+    default long count() {
+        return getDsl()
+                .selectCount()
+                .from(getTable())
+                .fetchOne(0, long.class);
+    }
+
+    private Collection<SortField<?>> getSortFields(Sort sortSpecification) {
+        return sortSpecification.stream().map(order -> {
+            Optional<Field<?>> fieldOptional = getFieldWithName(order.getProperty());
+            if (fieldOptional.isEmpty()) return null;
+
+            if (order.isAscending()) {
+                return fieldOptional.get()
+                                    .asc();
+            }
+
+            return fieldOptional.get().desc();
+        }).toList();
+    }
 
     /**
      * Retrieve all moodels
@@ -331,6 +417,23 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
     @Override
     default Iterable<T> retrieveAll() {
         return getDsl().select().from(getTable())
+                       .fetchInto(getModelClass());
+    }
+
+    default Page<T> retrieveAll(Pageable pageable) {
+        var results = getDsl().select()
+                              .from(getTable())
+                              .orderBy(getSortFields(pageable.getSort()))
+                              .limit(pageable.getPageSize())
+                              .offset(pageable.getOffset())
+                              .fetchInto(getModelClass());
+
+        return new PageImpl<>(results, pageable, count());
+    }
+
+    default Iterable<T> retrieveAll(Collection<? extends OrderField<?>> orderFields) {
+        return getDsl().select().from(getTable())
+                       .orderBy(orderFields)
                        .fetchInto(getModelClass());
     }
 

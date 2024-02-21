@@ -1,4 +1,4 @@
-package com.fejiro.exploration.dictionary.dictionary_web_api.config.user;
+package com.fejiro.exploration.dictionary.dictionary_web_api.config.service.user;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.ConfigurableGenericJOOQCRUDDAO;

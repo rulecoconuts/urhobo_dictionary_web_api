@@ -4,10 +4,7 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.IllegalArgumentExceptionWithMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt.JwtGenerator;
-import com.fejiro.exploration.dictionary.dictionary_web_api.service.CRUDService;
-import com.fejiro.exploration.dictionary.dictionary_web_api.service.ConversionServiceDataBackedService;
-import com.fejiro.exploration.dictionary.dictionary_web_api.service.DeletionService;
-import com.fejiro.exploration.dictionary.dictionary_web_api.service.RetrievalService;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.*;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.RefreshToken;
 import io.jsonwebtoken.Claims;
@@ -23,8 +20,8 @@ import java.util.Map;
 import java.util.Optional;
 
 @Component
-public class SimpleRefreshTokenService implements RefreshTokenService<String>, ConversionServiceDataBackedService<RefreshTokenDomainObject, RefreshTokenDataObject>,
-        CRUDService<RefreshTokenDomainObject, Long> {
+public class SimpleRefreshTokenService implements RefreshTokenService<String>,
+        GenericJOOQBackedService<RefreshTokenDomainObject, RefreshTokenDataObject, Long> {
     @Autowired
     ConversionService conversionService;
 
@@ -88,6 +85,11 @@ public class SimpleRefreshTokenService implements RefreshTokenService<String>, C
     }
 
     @Override
+    public CRUDDAO<RefreshTokenDataObject, Long> getCRUDAO() {
+        return refreshTokenCRUDDAO;
+    }
+
+    @Override
     public RefreshTokenDomainObject create(
             RefreshTokenDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
         throwIfModelIsInvalidForCreation(model);
@@ -100,6 +102,16 @@ public class SimpleRefreshTokenService implements RefreshTokenService<String>, C
     public Iterable<RefreshTokenDomainObject> createAll(
             Iterable<RefreshTokenDomainObject> models) throws IllegalArgumentExceptionWithMessageMap {
         return null;
+    }
+
+    @Override
+    public String generateErrorLabel(RefreshTokenDomainObject model) {
+        return null;
+    }
+
+    @Override
+    public Long getId(RefreshTokenDomainObject model) {
+        return model.getId();
     }
 
     @Override
@@ -171,16 +183,5 @@ public class SimpleRefreshTokenService implements RefreshTokenService<String>, C
     @Override
     public Iterable<RefreshTokenDomainObject> updateAll(Iterable<RefreshTokenDomainObject> models) {
         return null;
-    }
-
-    @Override
-    public Map<String, String> validateModelForUpdate(RefreshTokenDomainObject model) {
-        return null;
-    }
-
-    @Override
-    public void throwIfModelIsInvalidForUpdate(
-            RefreshTokenDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
-
     }
 }

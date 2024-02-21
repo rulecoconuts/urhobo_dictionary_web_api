@@ -3,6 +3,7 @@ package com.fejiro.exploration.dictionary.dictionary_web_api.service.user;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.IllegalArgumentExceptionWithMessageMap;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.GenericJOOQBackedService;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.AppUser;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.jooq.Condition;
@@ -18,13 +19,18 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Service
-public class CustomJOOQBackedUserService implements UserService {
+public class CustomJOOQBackedUserService implements UserService, GenericJOOQBackedService<AppUserDomainObject, AppUserDataObject, Integer> {
     @Autowired
     CRUDDAO<AppUserDataObject, Integer> userDAO;
 
     @Autowired
     ConversionService conversionService;
 
+
+    @Override
+    public CRUDDAO<AppUserDataObject, Integer> getCRUDAO() {
+        return userDAO;
+    }
 
     @Override
     public AppUserDomainObject create(AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
@@ -120,14 +126,6 @@ public class CustomJOOQBackedUserService implements UserService {
         throwIfDataModelIsInvalidForCreation(toData(model));
     }
 
-    AppUserDomainObject toDomain(AppUserDataObject dataObject) {
-        return conversionService.convert(dataObject, AppUserDomainObject.class);
-    }
-
-    AppUserDataObject toData(AppUserDomainObject domainObject) {
-        return conversionService.convert(domainObject, AppUserDataObject.class);
-    }
-
     @Override
     public Iterable<AppUserDomainObject> createAll(
             Iterable<AppUserDomainObject> models) throws IllegalArgumentExceptionWithMessageMap {
@@ -150,6 +148,16 @@ public class CustomJOOQBackedUserService implements UserService {
                                            .spliterator(), false)
                             .map(this::toDomain)
                             .collect(Collectors.toSet());
+    }
+
+    @Override
+    public String generateErrorLabel(AppUserDomainObject model) {
+        return String.format("%s_%s", model.getId(), model.getEmail());
+    }
+
+    @Override
+    public Integer getId(AppUserDomainObject model) {
+        return model.getId();
     }
 
     /**
@@ -240,65 +248,6 @@ public class CustomJOOQBackedUserService implements UserService {
     }
 
     @Override
-    public Iterable<AppUserDomainObject> updateAll(Iterable<AppUserDomainObject> models) {
-        List<AppUserDataObject> dataObjects = StreamSupport.stream(models.spliterator(), false)
-                                                           .map(this::toData)
-                                                           .toList();
-
-        return StreamSupport.stream(userDAO.updateAll(dataObjects)
-                                           .spliterator(), false)
-                            .map(this::toDomain)
-                            .collect(Collectors.toSet());
-    }
-
-    @Override
-    public Map<String, String> validateModelForUpdate(AppUserDomainObject model) {
-        return null;
-    }
-
-    @Override
-    public void throwIfModelIsInvalidForUpdate(
-            AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
-
-    }
-
-    @Override
-    public Optional<AppUserDomainObject> retrieveById(Integer id) {
-        return userDAO.retrieveById(id)
-                      .map(dataObject -> toDomain(dataObject));
-    }
-
-    @Override
-    public Iterable<AppUserDomainObject> retrieveAll() {
-        return null;
-    }
-
-    @Override
-    public Iterable<AppUserDomainObject> retrieveAllById(Iterable<Integer> ids) {
-        return null;
-    }
-
-    @Override
-    public void delete(AppUserDomainObject model) {
-
-    }
-
-    @Override
-    public void deleteById(Integer id) {
-
-    }
-
-    @Override
-    public void deleteAll(Iterable<AppUserDomainObject> models) {
-
-    }
-
-    @Override
-    public void deleteAllById(Iterable<Integer> ids) {
-
-    }
-
-    @Override
     public Optional<AppUserDomainObject> findByUsername(String username) {
         return ((GenericJOOQCRUDDAO<AppUserDataObject, Integer, ?>) userDAO)
                 .retrieveOne(AppUser.APP_USER.USERNAME.eq(username))
@@ -310,5 +259,20 @@ public class CustomJOOQBackedUserService implements UserService {
         return ((GenericJOOQCRUDDAO<AppUserDataObject, Integer, ?>) userDAO)
                 .retrieveOne(AppUser.APP_USER.EMAIL.eq(email))
                 .map(this::toDomain);
+    }
+
+    @Override
+    public ConversionService getConversionService() {
+        return conversionService;
+    }
+
+    @Override
+    public Class<? extends AppUserDomainObject> getDomainClass() {
+        return AppUserDomainObject.class;
+    }
+
+    @Override
+    public Class<? extends AppUserDataObject> getDataClass() {
+        return AppUserDataObject.class;
     }
 }

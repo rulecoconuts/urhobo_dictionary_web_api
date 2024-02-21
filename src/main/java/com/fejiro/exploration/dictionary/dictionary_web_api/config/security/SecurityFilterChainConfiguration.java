@@ -7,6 +7,7 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt.JwtAuth
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt.JwtGenerator;
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.refresh_token.SimpleJwtAndRefresherTokenGenerationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -36,6 +37,7 @@ public class SecurityFilterChainConfiguration {
 
     @Autowired
     SimpleJwtAndRefresherTokenGenerationService jwtAndRefresherTokenGenerationService;
+
 
     @Bean
     @Order(1)
@@ -80,7 +82,9 @@ public class SecurityFilterChainConfiguration {
     @Bean
     @Order(3)
     SecurityFilterChain defaultFilterChain(HttpSecurity http, JwtGenerator jwtGenerator,
-                                           AuthenticationConfiguration authenticationConfiguration) throws Exception {
+                                           AuthenticationConfiguration authenticationConfiguration,
+                                           ApplicationContext applicationContext
+    ) throws Exception {
         AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
 
         return http

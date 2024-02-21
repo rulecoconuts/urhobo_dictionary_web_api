@@ -36,7 +36,7 @@ public class RESTExceptionHandler extends ResponseEntityExceptionHandler {
         ApiError error = ApiError.builder()
                                  .status(HttpStatus.FORBIDDEN)
                                  .message(authenticationException.getMessage())
-                                 .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+                                 .timestamp(OffsetDateTime.now())
                                  .build();
 
         return convertApiErrorToResponseEntity(error);
@@ -53,7 +53,7 @@ public class RESTExceptionHandler extends ResponseEntityExceptionHandler {
         ApiError error = ApiError.builder()
                                  .status(HttpStatus.INTERNAL_SERVER_ERROR)
                                  .message(exception.getMessage())
-                                 .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+                                 .timestamp(OffsetDateTime.now())
                                  .build();
 
         return convertApiErrorToResponseEntity(error);

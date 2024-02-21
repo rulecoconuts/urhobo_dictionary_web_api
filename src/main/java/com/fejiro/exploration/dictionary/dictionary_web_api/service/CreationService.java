@@ -1,5 +1,6 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.service;
 
+import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.ApiExceptionWithComplexObjectMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.IllegalArgumentExceptionWithMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDomainObject;
@@ -15,9 +16,15 @@ public interface CreationService<T> {
      */
     T create(T model) throws IllegalArgumentExceptionWithMessageMap;
 
-    Iterable<T> createAll(Iterable<T> models) throws IllegalArgumentExceptionWithMessageMap;
+    Iterable<T> createAll(
+            Iterable<T> models) throws IllegalArgumentExceptionWithMessageMap, ApiExceptionWithComplexObjectMessageMap;
 
     Map<String, String> validateModelForCreation(T model);
 
+
     void throwIfModelIsInvalidForCreation(T model) throws IllegalArgumentExceptionWithMessageMap;
+
+    Map<T, Map<String, String>> validateModelsForCreation(Iterable<T> models);
+
+    void throwIfModelsAreInvalidForCreation(Iterable<T> models) throws ApiExceptionWithComplexObjectMessageMap;
 }

@@ -1,9 +1,15 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.security.jwt;
 
+import com.fejiro.exploration.dictionary.dictionary_web_api.security.AuthorizedUserHolder;
+import com.fejiro.exploration.dictionary.dictionary_web_api.security.SimpleAuthorizedUserHolder;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDomainObject;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -11,9 +17,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
     JwtGenerator jwtGenerator;
+
 
     public JwtAuthorizationFilter(AuthenticationManager authenticationManager, JwtGenerator jwtGenerator) {
         super(authenticationManager);
@@ -26,8 +34,8 @@ public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
         Authentication authentication = parseToken(request);
 
         if (authentication != null) {
-
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
         } else {
             SecurityContextHolder.clearContext();
         }

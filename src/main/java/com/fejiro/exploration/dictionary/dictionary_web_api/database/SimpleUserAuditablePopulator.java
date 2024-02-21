@@ -2,10 +2,12 @@ package com.fejiro.exploration.dictionary.dictionary_web_api.database;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.AuthorizedUserHolder;
 import com.fejiro.exploration.dictionary.dictionary_web_api.security.SimpleAuthorizedUserHolder;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDomainObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -18,7 +20,7 @@ public class SimpleUserAuditablePopulator implements UserAuditablePopulator {
 
     @Override
     public void populateForCreation(UserAuditable model) {
-        var id = authorizedUserHolder().getId();
+        var id = getId();
         model.setCreatedBy(id);
         model.setUpdatedBy(id);
     }
@@ -32,9 +34,14 @@ public class SimpleUserAuditablePopulator implements UserAuditablePopulator {
         }
     }
 
+    Integer getId() {
+        return ((AppUserDomainObject) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                .getId();
+    }
+
     @Override
     public void populateForUpdate(UserAuditable model) {
-        var id = authorizedUserHolder().getId();
+        var id = getId();
         model.setUpdatedBy(id);
     }
 }
