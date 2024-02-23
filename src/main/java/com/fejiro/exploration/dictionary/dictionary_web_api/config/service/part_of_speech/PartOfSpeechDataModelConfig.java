@@ -44,23 +44,23 @@ public class PartOfSpeechDataModelConfig {
                     return PartOfSpeech.PART_OF_SPEECH.ID.in(StreamSupport.stream(ids.spliterator(), false).toList());
                 })
                 .idMatchConditionGenerator(PartOfSpeech.PART_OF_SPEECH.ID::eq)
-                .validateForCreationFunction(word -> {
-                    if (word.getName() == null || word.getName().isBlank()) {
+                .validateForCreationFunction(part -> {
+                    if (part.getName() == null || part.getName().isBlank()) {
                         return "Name is empty";
                     }
 
 
-                    if (word.getId() != null) return "Part of speech to be created has a non-null id";
+                    if (part.getId() != null) return "Part of speech to be created has a non-null id";
 
                     return null;
                 })
-                .validateForUpdateFunction(word -> {
-                    if (word.getName() == null || word.getName().isBlank()) {
+                .validateForUpdateFunction(part -> {
+                    if (part.getName() == null || part.getName().isBlank()) {
                         return "Name is empty";
                     }
 
 
-                    if (word.getId() == null) return "Part of speech to be updated has a null id";
+                    if (part.getId() == null) return "Part of speech to be updated has a null id";
 
 
                     return null;

@@ -124,6 +124,10 @@ public class CustomJOOQBackedWordPartService implements WordPartService, Generic
             }
         }
 
+        if (existingCopy.isEmpty()) {
+            errors.put("id", "Word part with id does not exist");
+        }
+
         return errors;
     }
 }

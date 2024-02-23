@@ -101,6 +101,7 @@ public class CustomJOOQBackedLanguageService implements LanguageService, Generic
         } else if (existingCopy.isEmpty()) {
             errors.put("id", "ID does not exist in database");
         }
+        
 
         return errors;
     }

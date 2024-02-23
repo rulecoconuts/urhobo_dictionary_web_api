@@ -125,6 +125,10 @@ public class CustomJOOQBackedWordService implements WordService, GenericJOOQBack
             }
         }
 
+        if (existingCopy.isEmpty()) {
+            errors.put("id", "Word with id does not exist");
+        }
+
         return errors;
     }
 }

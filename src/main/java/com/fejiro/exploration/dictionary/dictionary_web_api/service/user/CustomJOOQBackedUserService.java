@@ -33,35 +33,19 @@ public class CustomJOOQBackedUserService implements UserService, GenericJOOQBack
     }
 
     @Override
-    public AppUserDomainObject create(AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
-        AppUserDataObject dataObject = toData(model);
-
-        throwIfDataModelIsInvalidForCreation(dataObject);
-
+    public AppUserDomainObject preProcessBeforeCreation(AppUserDomainObject model) {
         // Encode/hash password
         PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
-        dataObject.setPassword(encoder.encode(dataObject.getPassword()));
-
-        // Create app user record
-        return toDomain(userDAO.create(dataObject));
+        model.setPassword(encoder.encode(model.getPassword()));
+        return model;
     }
 
     @Override
     public Map<String, String> validateModelForCreation(AppUserDomainObject model) {
-        return validateDataModelForCreation(toData(model));
-    }
-
-    /**
-     * Check if user data is valid to be created
-     *
-     * @param dataObject
-     * @return
-     */
-    Map<String, String> validateDataModelForCreation(AppUserDataObject dataObject) {
         // Make sure email and username are unique
-        Condition condition = AppUser.APP_USER.EMAIL.eq(dataObject.getEmail());
-        if (dataObject.getUsername() != null) {
-            condition = condition.or(AppUser.APP_USER.USERNAME.eq(dataObject.getUsername()));
+        Condition condition = AppUser.APP_USER.EMAIL.eq(model.getEmail());
+        if (model.getUsername() != null) {
+            condition = condition.or(AppUser.APP_USER.USERNAME.eq(model.getUsername()));
         }
 
         Iterable<AppUserDataObject> matches = ((GenericJOOQCRUDDAO<AppUserDataObject, Integer, ?>) userDAO).retrieveAll(
@@ -71,83 +55,16 @@ public class CustomJOOQBackedUserService implements UserService, GenericJOOQBack
         Map<String, String> errors = new HashMap<>();
 
         matches.forEach((match) -> {
-            if (match.getEmail().equals(dataObject.getEmail()))
-                errors.put("email", String.format("Email %s already exists", dataObject.getEmail()));
-            if (dataObject.getUsername() != null && match.getUsername().equals(dataObject.getUsername()))
-                errors.put("username", String.format("Username %s already exists", dataObject.getUsername()));
+            if (match.getEmail().equals(model.getEmail()))
+                errors.put("email", String.format("Email %s already exists", model.getEmail()));
+            if (model.getUsername() != null && match.getUsername().equals(model.getUsername()))
+                errors.put("username", String.format("Username %s already exists", model.getUsername()));
         });
 
-        if (dataObject.getPassword() == null || dataObject.getPassword().trim().isEmpty()) {
-            errors.put("password", "Password cannot be blank");
-        }
-
-        if (dataObject.getFirstName() == null || dataObject.getFirstName().trim().isEmpty()) {
-            errors.put("firstName", "First name cannot be blank");
-        }
-
-        if (dataObject.getUsername() != null && dataObject.getUsername().trim().isEmpty()) {
-            errors.put("username", "Username cannot be blank");
-        } else if (dataObject.getUsername() != null && dataObject.getUsername().contains("@")) {
-            errors.put("username", "Username cannot contain '@'");
-        }
-
-        if (dataObject.getEmail() == null || dataObject.getEmail().trim().isEmpty()) {
-            errors.put("email", "Email cannot be blank");
-        } else if (!EmailValidator.getInstance().isValid(dataObject.getEmail())) {
-            errors.put("email", "Invalid email format");
-        }
+        performSharedValidation(errors, model.getPassword(), model.getFirstName(), model.getUsername(),
+                                model.getEmail(), model);
 
         return errors;
-    }
-
-    /**
-     * Throw an error if user data is not valid to be created
-     *
-     * @param dataObject
-     * @throws IllegalArgumentExceptionWithMessageMap
-     */
-    void throwIfDataModelIsInvalidForCreation(
-            AppUserDataObject dataObject) throws IllegalArgumentExceptionWithMessageMap {
-        Map<String, String> errors = validateDataModelForCreation(dataObject);
-
-        if (!errors.isEmpty())
-            throw new IllegalArgumentExceptionWithMessageMap("Error with creation of app user", errors,
-                                                             HttpStatus.BAD_REQUEST);
-    }
-
-    /**
-     * Throw an exception if domain object model is invalid for creation
-     *
-     * @param model
-     * @throws IllegalArgumentExceptionWithMessageMap
-     */
-    public void throwIfModelIsInvalidForCreation(
-            AppUserDomainObject model) throws IllegalArgumentExceptionWithMessageMap {
-        throwIfDataModelIsInvalidForCreation(toData(model));
-    }
-
-    @Override
-    public Iterable<AppUserDomainObject> createAll(
-            Iterable<AppUserDomainObject> models) throws IllegalArgumentExceptionWithMessageMap {
-        List<AppUserDataObject> dataObjects = StreamSupport.stream(models.spliterator(), false)
-                                                           .map(this::toData)
-                                                           .toList();
-
-        throwIfDataModelsAreInvalidForCreation(dataObjects);
-
-        // Encode/hash all the passwords
-        PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
-
-        dataObjects.forEach((dataObject) ->
-                                    dataObject.setPassword(encoder.encode(dataObject.getPassword()))
-        );
-
-
-        // Create app user records
-        return StreamSupport.stream(userDAO.createAll(dataObjects)
-                                           .spliterator(), false)
-                            .map(this::toDomain)
-                            .collect(Collectors.toSet());
     }
 
     @Override
@@ -160,91 +77,49 @@ public class CustomJOOQBackedUserService implements UserService, GenericJOOQBack
         return model.getId();
     }
 
-    /**
-     * Check if collection of user domain data is valid before creation
-     *
-     * @param models
-     * @return
-     */
-    Map<String, String> validateModelsForCreation(Collection<AppUserDomainObject> models) {
-        List<AppUserDataObject> dataObjects = StreamSupport.stream(models.spliterator(), false)
-                                                           .map(this::toData)
-                                                           .toList();
-        return validateDataModelsForCreation(dataObjects);
-    }
-
-    /**
-     * Check if collection of user data is valid before creation
-     * TODO: Make errors returned show the invalid user data objects more clearly
-     *
-     * @param dataObjects
-     * @return
-     */
-    Map<String, String> validateDataModelsForCreation(Collection<AppUserDataObject> dataObjects) {
-
-        // Make sure email and username are unique for all models
-        Set<String> emailsToBeAdded = dataObjects.stream().map(AppUserDataObject::getEmail)
-                                                 .collect(Collectors.toSet());
-        Set<String> usernamesToBeAdded = dataObjects.stream().map(AppUserDataObject::getUsername)
-                                                    .collect(Collectors.toSet());
-
-
-        Iterable<AppUserDataObject> matches = ((GenericJOOQCRUDDAO<AppUserDataObject, Integer, ?>) userDAO).retrieveAll(
-                AppUser.APP_USER.EMAIL.in(emailsToBeAdded)
-                                      .or(AppUser.APP_USER.USERNAME.in(usernamesToBeAdded))
-        );
-
-        Map<String, StringBuilder> errorBuilderMap = new HashMap<>();
-
-        matches.forEach((match) -> {
-            if (emailsToBeAdded.contains(match.getEmail())) {
-                errorBuilderMap.putIfAbsent("email", new StringBuilder());
-                StringBuilder builder =
-                        errorBuilderMap.get("email");
-                if (!builder.isEmpty()) {
-                    builder.append(";");
-                }
-                builder.append(String.format("Email %s already exists", match.getEmail()));
-            }
-
-            if (usernamesToBeAdded.contains(match.getUsername())) {
-                errorBuilderMap.putIfAbsent("username", new StringBuilder());
-                StringBuilder builder =
-                        errorBuilderMap.get("username");
-                if (!builder.isEmpty()) {
-                    builder.append(";");
-                }
-                builder.append(String.format("Username %s already exists", match.getUsername()));
-            }
-        });
-
-        return errorBuilderMap.entrySet().stream()
-                              .collect(Collectors.toMap(Map.Entry::getKey,
-                                                        (entry) -> entry.getValue().toString()));
-    }
-
-    /**
-     * Throw an exception if collection of user domain data is invalid for creation
-     *
-     * @param dataObjects
-     * @throws IllegalArgumentExceptionWithMessageMap
-     */
-    void throwIfDataModelsAreInvalidForCreation(
-            Collection<AppUserDataObject> dataObjects) throws IllegalArgumentExceptionWithMessageMap {
-        var errors = validateDataModelsForCreation(dataObjects);
-
-        if (!errors.isEmpty()) {
-
-            throw new IllegalArgumentExceptionWithMessageMap("Error with creation of multiple app users", errors);
-        }
-    }
-
     @Override
-    public AppUserDomainObject update(AppUserDomainObject model) {
-        AppUserDataObject dataObject = toData(model);
-        // TODO: Add validation code
+    public Map<String, String> validateModelForUpdate(AppUserDomainObject model,
+                                                      Optional<AppUserDomainObject> existingCopy) {
+        Map<String, String> errors = new HashMap<>();
 
-        return toDomain(userDAO.update(dataObject));
+        performSharedValidation(errors, model.getPassword(), model.getFirstName(), model.getUsername(),
+                                model.getEmail(), model);
+
+
+        return errors;
+    }
+
+    /**
+     * Perform validation that is shared across creation and update of app_users
+     *
+     * @param errors
+     * @param password
+     * @param firstName
+     * @param username
+     * @param email
+     * @param model
+     */
+    private void performSharedValidation(Map<String, String> errors, String password, String firstName, String username,
+                                         String email, AppUserDomainObject model) {
+        if (password == null || password.trim().isEmpty()) {
+            errors.put("password", "Password cannot be blank");
+        }
+
+        if (firstName == null || firstName.trim().isEmpty()) {
+            errors.put("firstName", "First name cannot be blank");
+        }
+
+        if (username != null && username.trim().isEmpty()) {
+            errors.put("username", "Username cannot be blank");
+        } else if (username != null && username.contains("@")) {
+            errors.put("username", "Username cannot contain '@'");
+        }
+
+        if (email == null || email.trim().isEmpty()) {
+            errors.put("email", "Email cannot be blank");
+        } else if (!EmailValidator.getInstance().isValid(email)) {
+            errors.put("email", "Invalid email format");
+        }
     }
 
     @Override
