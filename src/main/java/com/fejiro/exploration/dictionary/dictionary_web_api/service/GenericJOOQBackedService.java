@@ -2,6 +2,8 @@ package com.fejiro.exploration.dictionary.dictionary_web_api.service;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
+import com.fejiro.exploration.dictionary.dictionary_web_api.database.TemporalAuditable;
+import com.fejiro.exploration.dictionary.dictionary_web_api.database.UserAuditable;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.ApiExceptionWithComplexObjectMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.IllegalArgumentExceptionWithMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDataObject;
@@ -27,6 +29,10 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
 
         // Create data record
         return toDomain(getCRUDAO().create(dataObject));
+    }
+
+    default GenericJOOQCRUDDAO<D, I, ?> getGenericJOOQDAO() {
+        return ((GenericJOOQCRUDDAO<D, I, ?>) getCRUDAO());
     }
 
     default T preProcessBeforeCreation(T model) {
@@ -106,8 +112,21 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
                                                              HttpStatus.BAD_REQUEST);
     }
 
-    default T preProcessBeforeUpdate(T model, Optional<T> existingCopy) {
+    default T copyModel(T model) {
         return model;
+    }
+
+    default T preProcessBeforeUpdate(T model, Optional<T> existingCopy) {
+        var newModel = copyModel(model);
+
+        if (newModel instanceof TemporalAuditable) {
+            ((TemporalAuditable) newModel).setCreatedAt(((TemporalAuditable) existingCopy.get()).getCreatedAt());
+        }
+
+        if (newModel instanceof UserAuditable) {
+            ((UserAuditable) newModel).setCreatedBy(((UserAuditable) existingCopy.get()).getCreatedBy());
+        }
+        return newModel;
     }
 
     I getId(T model);
