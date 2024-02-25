@@ -1,12 +1,20 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
+import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.GenericJOOQBackedService;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.part_of_speech.PartOfSpeechDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDataObject;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDomainObject;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.PartOfSpeech;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Word;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.WordPart;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;

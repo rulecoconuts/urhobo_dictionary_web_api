@@ -270,7 +270,7 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
         T preProcessedModel = preProcessDataForUpdate(model);
         R record = generateUpdatableRecord(preProcessedModel);
         record.update();
-        
+
         return record.into((Class<? extends T>) model.getClass());
     }
 
@@ -395,7 +395,7 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
                 .fetchOne(0, long.class);
     }
 
-    private Collection<SortField<?>> getSortFields(Sort sortSpecification) {
+    default Collection<SortField<?>> getSortFields(Sort sortSpecification) {
         return sortSpecification.stream().map(order -> {
             Optional<Field<?>> fieldOptional = getFieldWithName(order.getProperty());
             if (fieldOptional.isEmpty()) return null;

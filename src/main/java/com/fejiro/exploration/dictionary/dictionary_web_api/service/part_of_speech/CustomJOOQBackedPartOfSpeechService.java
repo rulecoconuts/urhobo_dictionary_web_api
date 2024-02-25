@@ -6,6 +6,8 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDat
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.PartOfSpeech;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -105,5 +107,11 @@ public class CustomJOOQBackedPartOfSpeechService implements PartOfSpeechService,
         }
 
         return errors;
+    }
+
+    @Override
+    public Page<PartOfSpeechDomainObject> searchByName(String namePattern, Pageable pageable) {
+        return getGenericJOOQDAO().retrieveAll(PartOfSpeech.PART_OF_SPEECH.NAME.likeIgnoreCase(namePattern), pageable)
+                                  .map(this::toDomain);
     }
 }
