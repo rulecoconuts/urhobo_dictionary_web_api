@@ -59,7 +59,7 @@ public class CustomJOOQBackedTranslationService implements TranslationService, G
         if (model.getId() != null) {
             errors.put("id", "ID must be null for new translation");
         }
-
+        
         performSharedValidation(model, errors);
 
         if (!errors.containsKey("source_word_part") && !errors.containsKey("target_word_part")) {

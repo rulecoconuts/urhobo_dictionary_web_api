@@ -3,6 +3,13 @@ version: '3.9'
 services:
   postgres:
     image: postgres:16-alpine
+    healthcheck:
+      # check that postgres database is ready to receive connection requests
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 10s
+      retries: 2
+    
     ports:
       - ${DICTIONARY_DB_PORT}:5432
     volumes:

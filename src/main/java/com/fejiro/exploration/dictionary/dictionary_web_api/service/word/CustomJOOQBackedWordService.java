@@ -3,10 +3,12 @@ package com.fejiro.exploration.dictionary.dictionary_web_api.service.word;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.GenericJOOQBackedService;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.language.LanguageDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.part_of_speech.PartOfSpeechDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.FullWordPartDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.PartWordPartPairDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.WordPartDomainObject;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Language;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Word;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.WordPart;
 import org.jooq.impl.DSL;
@@ -169,6 +171,44 @@ public class CustomJOOQBackedWordService implements WordService, GenericJOOQBack
 
                          ).from(Word.WORD)
                          .where(Word.WORD.NAME.likeIgnoreCase(namePattern))
+                         .orderBy(getGenericJOOQDAO().getSortFields(pageable.getSort()))
+                         .limit(pageable.getPageSize())
+                         .offset(pageable.getOffset())
+                         .fetch(r -> {
+                             return FullWordPartDomainObject.builder()
+                                                            .word(r.component1().into(WordDomainObject.class))
+                                                            .parts(r.component2())
+                                                            .build();
+                         });
+        return new PageImpl<>(results, pageable,
+                              getGenericJOOQDAO()
+                                      .count(Word.WORD.NAME.likeIgnoreCase(namePattern)));
+    }
+
+    @Override
+    public Page<FullWordPartDomainObject> searchByNameFullInLanguage(String namePattern, LanguageDomainObject language,
+                                                                     Pageable pageable) {
+        var dsl = getGenericJOOQDAO()
+                .getDsl();
+        var results = dsl.select(Word.WORD,
+                                 DSL.multiset(
+                                            dsl.select(WordPart.WORD_PART, WordPart.WORD_PART.partOfSpeech())
+                                               .from(WordPart.WORD_PART)
+                                               .where(WordPart.WORD_PART.WORD_ID.eq(Word.WORD.ID)))
+                                    .convertFrom(r -> r.map(
+                                            innerRecord -> {
+                                                return PartWordPartPairDomainObject.builder()
+                                                                                   .wordPart(innerRecord.component1()
+                                                                                                        .into(WordPartDomainObject.class))
+                                                                                   .part(innerRecord.component2()
+                                                                                                    .into(PartOfSpeechDomainObject.class))
+                                                                                   .build();
+                                            }
+                                    ))
+
+                         ).from(Word.WORD)
+                         .where(DSL.and(Word.WORD.NAME.likeIgnoreCase(namePattern),
+                                        Word.WORD.LANGUAGE_ID.eq(language.getId())))
                          .orderBy(getGenericJOOQDAO().getSortFields(pageable.getSort()))
                          .limit(pageable.getPageSize())
                          .offset(pageable.getOffset())

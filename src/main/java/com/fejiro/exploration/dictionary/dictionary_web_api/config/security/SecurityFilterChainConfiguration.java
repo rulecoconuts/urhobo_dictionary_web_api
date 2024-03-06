@@ -66,10 +66,10 @@ public class SecurityFilterChainConfiguration {
     @Order(2)
     SecurityFilterChain anonymousFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/users/register/**", "api/users/refresh/**")
+                .securityMatcher("/api/users/register/**", "/api/users/refresh/**")
                 .authorizeHttpRequests(
-                        authorize -> authorize.requestMatchers("/api/users/register/**", "api/users/refresh/**")
-                                              .anonymous())
+                        authorize -> authorize.requestMatchers("/api/users/register/**", "/api/users/refresh/**")
+                                              .permitAll())
                 .anonymous(Customizer.withDefaults())
                 .sessionManagement(
                         sessionManager -> sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

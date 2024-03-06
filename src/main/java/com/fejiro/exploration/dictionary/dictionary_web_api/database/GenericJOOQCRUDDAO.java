@@ -133,18 +133,20 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
     }
 
     default List<Field<?>> getFieldsWithName(List<String> names) {
-        return Arrays.stream(getTable().fields())
-                     .filter(field -> !Optional.of(field.getQualifiedName())
-                                               .map(Name::last)
-                                               .map(names::contains)
-                                               .orElse(false))
-                     .sorted((a, b) -> {
-                         Integer aIndex = names.indexOf(a.getQualifiedName().last());
-                         Integer bIndex = names.indexOf(b.getQualifiedName().last());
+        var fields = Arrays.stream(getTable().fields())
+                           .filter(field -> Optional.of(field.getQualifiedName())
+                                                    .map(Name::last)
+                                                    .map(names::contains)
+                                                    .orElse(false))
+                           .sorted((a, b) -> {
+                               Integer aIndex = names.indexOf(a.getQualifiedName().last());
+                               Integer bIndex = names.indexOf(b.getQualifiedName().last());
 
-                         return aIndex.compareTo(bIndex);
-                     })
-                     .toList();
+                               return aIndex.compareTo(bIndex);
+                           })
+                           .toList();
+
+        return fields;
     }
 
     default Optional<Field<?>> getFieldWithName(String name) {
@@ -370,10 +372,11 @@ public interface GenericJOOQCRUDDAO<T, I, R extends UpdatableRecord<R>> extends 
     }
 
     default Page<T> retrieveAll(Condition condition, Pageable pageable) {
+        var sortFields = getSortFields(pageable.getSort());
         List<T> results = getDsl().select()
                                   .from(getTable())
                                   .where(condition)
-                                  .orderBy(getSortFields(pageable.getSort()))
+                                  .orderBy(sortFields)
                                   .limit(pageable.getPageSize())
                                   .offset(pageable.getOffset())
                                   .fetchInto(getModelClass());
