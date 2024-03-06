@@ -123,7 +123,7 @@ data "aws_iam_policy_document" "ecs_task_doc" {
     effect  = "Allow"
 
     principals {
-      identifiers = ["ec2.amazonaws.com"]
+      identifiers = ["ecs-tasks.amazonaws.com"]
       type        = "Service"
     }
   }
@@ -131,12 +131,51 @@ data "aws_iam_policy_document" "ecs_task_doc" {
 
 resource "aws_iam_role" "ecs_task_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_task_doc.json
-  name_prefix        = "urhobo-dictionary-ecs-task-role-"
+
+  name_prefix = "urhobo-dictionary-ecs-task-role-"
+
+  inline_policy {
+    name = "log-creation-stream"
+
+    policy = jsonencode({
+      Statement = {
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Effect = "Allow"
+
+        Resource = [
+          "arn:aws:logs:*:*:*"
+        ]
+      }
+    })
+  }
 }
 
 resource "aws_iam_role" "ecs_exec_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_task_doc.json
   name_prefix        = "urhobo-dictionary-ecs-exec-role-"
+
+  inline_policy {
+    name = "log-creation-stream"
+
+    policy = jsonencode({
+      Statement = {
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Effect = "Allow"
+
+        Resource = [
+          "arn:aws:logs:*:*:*"
+        ]
+      }
+    })
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_exec_role_policy" {
@@ -249,6 +288,12 @@ output "urhobo_dictionary_repo_url" {
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = "/ecs/urhobo-dictionary"
   retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_stream" "ecs" {
+  log_group_name = aws_cloudwatch_log_group.ecs.name
+  name           = "urhobo-dictionary-server-task-stream"
+  depends_on     = [aws_cloudwatch_log_group.ecs]
 }
 
 # -- ECS TASK DEFINITION --
@@ -383,7 +428,7 @@ resource "aws_lb_target_group" "ecs_urhobo_dictionary_target_group" {
 
   health_check {
     enabled             = true
-    path                = "/"
+    path                = "/health-check"
     port                = 80
     matcher             = 200
     interval            = 40
@@ -407,3 +452,56 @@ resource "aws_lb_listener" "ecs_urhobo_lb_listener" {
 output "alb_url" {
   value = aws_lb.ecs_load_balancer.dns_name
 }
+
+# -- AWS DB Instance --
+variable "db_username" {
+  default = "urhobo-dictionary"
+}
+
+variable "db_password" {
+  default = ""
+}
+
+resource "aws_security_group" "db_main" {
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_db_subnet_group" "main" {
+  subnet_ids  = aws_subnet.public[*].id
+  name_prefix = "urhobo-dictionary-db-subnet-"
+}
+
+resource "aws_db_instance" "main" {
+  instance_class            = "db.t3.micro"
+  allocated_storage         = 10
+  db_name                   = "urhobodictionarydb"
+  engine                    = "postgres"
+  username                  = var.db_username
+  password                  = var.db_password
+  identifier                = "urhobo-dictionary-db"
+  backup_retention_period   = 7
+  vpc_security_group_ids    = [aws_security_group.db_main.id]
+  multi_az                  = false // Single-AZ to qualify for free tier
+  db_subnet_group_name      = aws_db_subnet_group.main.name
+  final_snapshot_identifier = "urhobo-dictionary-db-final-snapshot"
+  #  skip_final_snapshot     = true
+}
+
+output "db_url" {
+  value = aws_db_instance.main.endpoint
+}
+

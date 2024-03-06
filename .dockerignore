@@ -1,4 +1,6 @@
 build/
 bin/
-.gradle
+.gradle/
 deploy/
+.idea/
+.git/
