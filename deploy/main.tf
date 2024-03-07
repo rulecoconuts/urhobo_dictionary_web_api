@@ -101,6 +101,24 @@ resource "aws_iam_role" "ecs_node_role" {
 
   # Allow only ECS services to assume this role
   assume_role_policy = data.aws_iam_policy_document.ecs_node_doc.json
+
+  inline_policy {
+    name = "log-stream-creation-policy"
+
+    policy = jsonencode({
+      Version   = "2012-10-17",
+      Statement = {
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Effect = "Allow"
+
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    })
+  }
 }
 
 # Attach the IAM policy that allows the ECS Services control EC2 resources
@@ -135,9 +153,10 @@ resource "aws_iam_role" "ecs_task_role" {
   name_prefix = "urhobo-dictionary-ecs-task-role-"
 
   inline_policy {
-    name = "log-creation-stream"
+    name = "log-stream-creation-policy"
 
     policy = jsonencode({
+      Version   = "2012-10-17",
       Statement = {
         Action = [
           "logs:CreateLogStream",
@@ -146,10 +165,38 @@ resource "aws_iam_role" "ecs_task_role" {
         ]
         Effect = "Allow"
 
-        Resource = [
-          "arn:aws:logs:*:*:*"
-        ]
+        Resource = "arn:aws:logs:*:*:*"
       }
+    })
+  }
+
+  inline_policy {
+    name = "allow-read-environment-file"
+
+    policy = jsonencode({
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Action = [
+            "s3:GetObject"
+          ]
+
+          Effect = "Allow"
+
+          Resource = "arn:aws:s3:::personalappenvfiles/urhobo_dictionary_server.env"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "s3:GetBucketLocation"
+          ]
+          Resource = [
+            "arn:aws:s3:::personalappenvfiles/",
+            "arn:aws:s3:::personalappenvfiles",
+            "arn:aws:s3:::personalappenvfiles/*"
+          ]
+        }
+      ]
     })
   }
 }
@@ -159,9 +206,10 @@ resource "aws_iam_role" "ecs_exec_role" {
   name_prefix        = "urhobo-dictionary-ecs-exec-role-"
 
   inline_policy {
-    name = "log-creation-stream"
+    name = "log-stream-creation-policy"
 
     policy = jsonencode({
+      Version   = "2012-10-17",
       Statement = {
         Action = [
           "logs:CreateLogStream",
@@ -170,10 +218,38 @@ resource "aws_iam_role" "ecs_exec_role" {
         ]
         Effect = "Allow"
 
-        Resource = [
-          "arn:aws:logs:*:*:*"
-        ]
+        Resource = "arn:aws:logs:*:*:*"
       }
+    })
+  }
+
+  inline_policy {
+    name = "allow-read-environment-file"
+
+    policy = jsonencode({
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Action = [
+            "s3:GetObject"
+          ]
+
+          Effect = "Allow"
+
+          Resource = "arn:aws:s3:::personalappenvfiles/urhobo_dictionary_server.env"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "s3:GetBucketLocation"
+          ]
+          Resource = [
+            "arn:aws:s3:::personalappenvfiles/",
+            "arn:aws:s3:::personalappenvfiles",
+            "arn:aws:s3:::personalappenvfiles/*"
+          ]
+        }
+      ]
     })
   }
 }
@@ -188,6 +264,13 @@ resource "aws_security_group" "ecs_security_group" {
   name_prefix = "urhobo-dictionary-ecs-security-group-"
   vpc_id      = aws_vpc.main.id
 
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [aws_vpc.main.cidr_block, "0.0.0.0/0"]
+  }
+
   # Allow out-going TCP traffic to any address from ports 0 - 65535
   egress {
     from_port   = 0
@@ -197,13 +280,13 @@ resource "aws_security_group" "ecs_security_group" {
   }
 }
 
-#data "aws_ssm_parameter" "ecs_node_ami" {
-#  name = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image-id"
-#}
+data "aws_ssm_parameter" "ecs_node_ami" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id"
+}
 
 resource "aws_launch_template" "ecs_ec2" {
   name_prefix            = "urhobo-dictionary-ec2-"
-  image_id               = "ami-0639d0300c73bb369"
+  image_id               = data.aws_ssm_parameter.ecs_node_ami.value
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.ecs_security_group.id]
   iam_instance_profile {
@@ -219,11 +302,11 @@ echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config;
 }
 
 resource "aws_autoscaling_group" "ecs" {
-  max_size                  = 1
+  max_size                  = 2
   min_size                  = 1
   name_prefix               = "urhobo-dictionary-ecs-asg-"
   vpc_zone_identifier       = aws_subnet.public[*].id
-  health_check_grace_period = 30 // In seconds
+  health_check_grace_period = 300 // In seconds
   health_check_type         = "EC2"
   protect_from_scale_in     = false
 
@@ -252,7 +335,7 @@ resource "aws_ecs_capacity_provider" "main" {
     managed_termination_protection = "DISABLED"
 
     managed_scaling {
-      maximum_scaling_step_size = 1
+      maximum_scaling_step_size = 2
       minimum_scaling_step_size = 1
       status                    = "ENABLED"
       target_capacity           = 100
@@ -298,13 +381,26 @@ resource "aws_cloudwatch_log_stream" "ecs" {
 
 # -- ECS TASK DEFINITION --
 
+resource "aws_efs_file_system" "fs" {
+  creation_token = "urhobo-dictionary-server-file-system"
+}
+
 resource "aws_ecs_task_definition" "main" {
-  family                = "urhobo-dictionary"
-  task_role_arn         = aws_iam_role.ecs_task_role.arn
-  execution_role_arn    = aws_iam_role.ecs_exec_role.arn
-  network_mode          = "bridge"
-  cpu                   = 256
-  memory                = 256
+  family             = "urhobo-dictionary"
+  task_role_arn      = aws_iam_role.ecs_task_role.arn
+  execution_role_arn = aws_iam_role.ecs_exec_role.arn
+  network_mode       = "bridge"
+  cpu                = 900
+  memory             = 900
+
+  volume {
+    name = "gradle-cache"
+    efs_volume_configuration {
+      file_system_id = aws_efs_file_system.fs.id
+      root_directory = "~/.gradle/"
+    }
+  }
+
   container_definitions = jsonencode([
     {
       name         = "urhobo-dictionary-server"
@@ -318,13 +414,15 @@ resource "aws_ecs_task_definition" "main" {
           type  = "s3"
         }
       ]
+      cpu               = 800
+      memoryReservation = 800
 
       logConfiguration = {
         logDriver = "awslogs"
         options   = {
           "awslogs-region" : "ca-central-1"
           "awslogs-group" : aws_cloudwatch_log_group.ecs.name
-          "awslogs-stream-prefix" : "urhobo-dictionary-server-"
+          "awslogs-stream-prefix" : "urhobo-dictionary-server"
         }
       }
     }
@@ -357,6 +455,12 @@ resource "aws_ecs_service" "main" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.main.arn
   desired_count   = 1
+
+  #  force_new_deployment = true
+  #
+  #  triggers = {
+  #    redeployment = plantimestamp()
+  #  }
 
   #  network_configuration {
   #    security_groups = [aws_security_group.ecs_task_security_group.id]
@@ -431,8 +535,8 @@ resource "aws_lb_target_group" "ecs_urhobo_dictionary_target_group" {
     path                = "/health-check"
     port                = 80
     matcher             = 200
-    interval            = 40
-    timeout             = 35
+    interval            = 180
+    timeout             = 120
     healthy_threshold   = 2
     unhealthy_threshold = 3
   }
@@ -486,19 +590,19 @@ resource "aws_db_subnet_group" "main" {
 }
 
 resource "aws_db_instance" "main" {
-  instance_class            = "db.t3.micro"
-  allocated_storage         = 10
-  db_name                   = "urhobodictionarydb"
-  engine                    = "postgres"
-  username                  = var.db_username
-  password                  = var.db_password
-  identifier                = "urhobo-dictionary-db"
-  backup_retention_period   = 7
-  vpc_security_group_ids    = [aws_security_group.db_main.id]
-  multi_az                  = false // Single-AZ to qualify for free tier
-  db_subnet_group_name      = aws_db_subnet_group.main.name
-  final_snapshot_identifier = "urhobo-dictionary-db-final-snapshot"
-  #  skip_final_snapshot     = true
+  instance_class          = "db.t3.micro"
+  allocated_storage       = 10
+  db_name                 = "urhobodictionarydb"
+  engine                  = "postgres"
+  username                = var.db_username
+  password                = var.db_password
+  identifier              = "urhobo-dictionary-db"
+  backup_retention_period = 7
+  vpc_security_group_ids  = [aws_security_group.db_main.id]
+  multi_az                = false // Single-AZ to qualify for free tier
+  db_subnet_group_name    = aws_db_subnet_group.main.name
+  #  final_snapshot_identifier = "urhobo-dictionary-db-final-snapshot"
+  skip_final_snapshot     = true
 }
 
 output "db_url" {
