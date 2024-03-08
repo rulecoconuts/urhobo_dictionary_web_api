@@ -32,12 +32,12 @@ resource "aws_alb_target_group" "service" {
   health_check {
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    interval            = 60
+    interval            = 125
     matcher             = var.health_check_matcher
     path                = var.health_check_endpoint
     port                = "traffic-port"
     protocol            = "HTTP"
-    timeout             = "30"
+    timeout             = 120
   }
 
   depends_on = [aws_alb.alb]

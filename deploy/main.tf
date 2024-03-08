@@ -7,10 +7,18 @@ terraform {
   }
   required_providers {
     aws = {
-      source  = "hasicorp/aws"
+      source  = "hashicorp/aws"
       version = "~> 5.39"
     }
   }
+}
+
+variable "region" {
+  default = "ca-central-1"
+}
+
+provider "aws" {
+  region = var.region
 }
 
 variable "environment" {
@@ -62,4 +70,43 @@ variable "health_check_matcher" {
 
 variable "health_check_endpoint" {
   default = "/health-check"
+}
+
+variable "hash" {
+  default = "latest"
+}
+
+variable "cpu_units" {
+  type    = number
+  default = 900
+}
+
+variable "memory" {
+  type    = number
+  default = 900
+}
+
+variable "log_retention_in_days" {
+  type    = number
+  default = 14
+}
+
+variable "ecs_desired_count" {
+  type    = number
+  default = 1
+}
+
+variable "ecs_minimum_healthy_percentage" {
+  type    = number
+  default = 100
+}
+
+variable "ecs_maximum_healthy_percentage" {
+  type    = number
+  default = 200
+}
+
+variable "ecs_container_port" {
+  type    = number
+  default = 8080
 }
