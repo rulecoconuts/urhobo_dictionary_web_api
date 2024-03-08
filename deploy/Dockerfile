@@ -5,6 +5,6 @@ WORKDIR /server
 COPY . .
 EXPOSE 8080
 
-VOLUME ["~/.gradle/"]
+#VOLUME ["~/.gradle/"]
 
 ENTRYPOINT [ "/bin/sh", "run_server.sh"]
