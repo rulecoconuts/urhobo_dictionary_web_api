@@ -96,6 +96,51 @@ variable "ecs_desired_count" {
   default = 1
 }
 
+variable "ecs_min_autoscaling_count" {
+  type    = number
+  default = 1
+}
+
+variable "ecs_max_autoscaling_count" {
+  type    = number
+  default = 2
+}
+
+variable "ecs_min_task_count" {
+  type    = number
+  default = 1
+}
+
+variable "ecs_max_task_count" {
+  type    = number
+  default = 2
+}
+
+variable "cpu_target_tracking_desired_value" {
+  type    = number
+  default = 500
+}
+
+variable "memory_target_tracking_desired_value" {
+  type    = number
+  default = 500
+}
+
+variable "max_scaling_step_size" {
+  type    = number
+  default = 1
+}
+
+variable "min_scaling_step_size" {
+  type    = number
+  default = 1
+}
+
+variable "target_capacity" {
+  type    = number
+  default = 1
+}
+
 variable "ecs_minimum_healthy_percentage" {
   type    = number
   default = 100
@@ -109,4 +154,17 @@ variable "ecs_maximum_healthy_percentage" {
 variable "ecs_container_port" {
   type    = number
   default = 8080
+}
+
+variable "env_file_s3_bucket" {
+  default = "personalappenvfiles"
+}
+
+variable "env_file_s3_bucket_path" {
+  default = "urhobo_dictionary_server.env"
+}
+
+variable "db_max_storage" {
+  type    = number
+  default = 10
 }

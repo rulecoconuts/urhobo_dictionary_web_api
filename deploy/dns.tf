@@ -11,12 +11,24 @@ resource "aws_route53_zone" "service" {
   }
 }
 
-resource "aws_route53_record" "service" {
-  zone_id = data.aws_route53_zone.top.zone_id
+#resource "aws_route53_record" "service" {
+#  zone_id = aws_route53_zone.service.zone_id
+#  name    = aws_route53_zone.service.name
+#  type    = "NS"
+#  ttl     = 300
+#  records = aws_route53_zone.service.name_servers
+#}
+
+resource "aws_route53_record" "alb_record" {
   name    = aws_route53_zone.service.name
-  type    = "NS"
-  ttl     = 300
-  records = aws_route53_zone.service.name_servers
+  type    = "A"
+  zone_id = aws_route53_zone.service.zone_id
+
+  alias {
+    evaluate_target_health = false
+    name                   = aws_alb.alb.dns_name
+    zone_id                = aws_alb.alb.zone_id
+  }
 }
 
 # -- SSL CERTIFICATE --

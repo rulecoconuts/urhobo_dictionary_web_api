@@ -1,10 +1,12 @@
 sudo docker build -f ./Dockerfile -t afejith/urhobo_dictionary_server:latest ../
 
+terraform init
+
 # Deploy remotely
 terraform apply
 
 # Get created repository URL
-export REPO=$(terraform output --raw urhobo_dictionary_repo_url)
+export REPO=$(terraform output --raw repo_url)
 
 aws ecr get-login-password --profile afejith_admin_proxy | sudo docker login --username AWS --password-stdin $REPO
 

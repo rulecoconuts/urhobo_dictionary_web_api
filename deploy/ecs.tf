@@ -71,12 +71,60 @@ data "aws_iam_policy_document" "task_assume_role_policy" {
 resource "aws_iam_role" "ecs_task_execution_role" {
   assume_role_policy = data.aws_iam_policy_document.task_assume_role_policy.json
   name               = "${var.name_space}_ECS_TaskExecutionRole_${var.environment}"
+
+  inline_policy {
+    name = "log-stream-creation-policy"
+
+    policy = jsonencode({
+      Version   = "2012-10-17",
+      Statement = {
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Effect = "Allow"
+
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    })
+  }
+
+  inline_policy {
+    name = "allow-read-environment-file"
+
+    policy = jsonencode({
+      Version   = "2012-10-17",
+      Statement = [
+        {
+          Action = [
+            "s3:GetObject"
+          ]
+
+          Effect = "Allow"
+
+          Resource = "arn:aws:s3:::${var.env_file_s3_bucket}/${var.env_file_s3_bucket_path}"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "s3:GetBucketLocation"
+          ]
+          Resource = [
+            "arn:aws:s3:::${var.env_file_s3_bucket}/",
+            "arn:aws:s3:::${var.env_file_s3_bucket}",
+            "arn:aws:s3:::${var.env_file_s3_bucket}/*"
+          ]
+        }
+      ]
+    })
+  }
 }
 
 ## Attach AWS Managed policy for ECS task execution role
 resource "aws_iam_role_policy_attachment" "task_assume_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  role       = aws_iam_role.ecs_task_execution_role
+  role       = aws_iam_role.ecs_task_execution_role.name
 }
 
 resource "aws_iam_role" "ecs_task_iam_role" {
@@ -96,29 +144,38 @@ resource "aws_ecs_task_definition" "service" {
   task_role_arn      = aws_iam_role.ecs_task_iam_role.arn
   execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
 
-  container_definitions = jsonencode({
-    name         = var.service_name
-    image        = "${aws_ecr_repository.ecr.repository_url}:${var.hash}"
-    cpu          = var.cpu_units
-    memory       = var.memory
-    essential    = true
-    portMappings = [
-      {
-        containerPort = var.ecs_container_port
-        hostPort      = 0
-        protocol      = "tcp"
-      }
-    ]
+  container_definitions = jsonencode([
+    {
+      name         = var.service_name
+      image        = "${aws_ecr_repository.ecr.repository_url}:${var.hash}"
+      cpu          = var.cpu_units
+      memory       = var.memory
+      essential    = true
+      portMappings = [
+        {
+          containerPort = var.ecs_container_port
+          hostPort      = 80
+          protocol      = "tcp"
+        }
+      ]
 
-    logConfiguration = {
-      logDriver = "awslogs",
-      options   = {
-        "awslogs-group"         = aws_cloudwatch_log_group.log_group.name,
-        "awslogs-region"        = var.region,
-        "awslogs-stream-prefix" = "app"
+      environmentFiles = [
+        {
+          value = "arn:aws:s3:::${var.env_file_s3_bucket}/${var.env_file_s3_bucket_path}"
+          type  = "s3"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs",
+        options   = {
+          "awslogs-group"         = aws_cloudwatch_log_group.log_group.name,
+          "awslogs-region"        = var.region,
+          "awslogs-stream-prefix" = "app"
+        }
       }
     }
-  })
+  ])
 
 }
 
@@ -132,8 +189,9 @@ resource "aws_ecs_service" "service" {
   deployment_maximum_percent         = var.ecs_maximum_healthy_percentage
 
   load_balancer {
-    container_name = var.service_name
-    container_port = var.ecs_container_port
+    container_name   = var.service_name
+    container_port   = var.ecs_container_port
+    target_group_arn = aws_alb_target_group.service.arn
   }
 
   ## Spread tasks evenly across all availability zones for high availability

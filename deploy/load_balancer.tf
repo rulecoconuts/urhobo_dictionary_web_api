@@ -23,7 +23,7 @@ resource "aws_alb" "alb" {
 }
 
 resource "aws_alb_target_group" "service" {
-  name                 = "${var.name_space}_ALB_TargetGroup_${var.environment}"
+  name                 = "${var.name_space}-ALB-TargetGroup-${var.environment}"
   port                 = 80
   protocol             = "HTTP"
   vpc_id               = aws_vpc.main.id
@@ -52,14 +52,23 @@ resource "aws_alb_listener" "alb_default_listener_https" {
   certificate_arn   = aws_acm_certificate.alb_certificate.arn
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-Ext-2018-06"
 
-  depends_on = [aws_acm_certificate.alb_certificate]
-}
-
-resource "aws_alb_listener_rule" "https_listener_rule" {
-  listener_arn = aws_alb_listener.alb_default_listener_https.arn
-
-  action {
+  default_action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.service.arn
   }
+
+  depends_on = [aws_acm_certificate.alb_certificate]
+}
+
+#resource "aws_alb_listener_rule" "https_listener_rule" {
+#  listener_arn = aws_alb_listener.alb_default_listener_https.arn
+#
+#  action {
+#    type             = "forward"
+#    target_group_arn = aws_alb_target_group.service.arn
+#  }
+#}
+
+output "alb_url" {
+  value = aws_alb.alb.dns_name
 }

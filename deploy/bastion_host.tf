@@ -1,6 +1,8 @@
 resource "aws_security_group" "bastion" {
   name = "${var.name_space}_Bastion_SecurityGroup_${var.environment}"
 
+  vpc_id = aws_vpc.main.id
+
   ingress {
     description = "Allow all incoming SSH traffic"
     from_port   = 22

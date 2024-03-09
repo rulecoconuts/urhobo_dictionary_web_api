@@ -43,7 +43,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "${var.name_space}_PublicSubnetRouteTable_${count.index}_${var.environment}"
+    Name = "${var.name_space}_PublicVPCRouteTable_${var.environment}"
   }
 }
 
@@ -55,7 +55,7 @@ resource "aws_route_table_association" "public" {
 }
 
 ## Make outgoing public route table the default for the VPC
-resource "aws_route_table_association" "public_main" {
+resource "aws_main_route_table_association" "public_main" {
   vpc_id         = aws_vpc.main.id
   route_table_id = aws_route_table.public.id
 }
