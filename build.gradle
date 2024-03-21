@@ -52,6 +52,10 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-api:0.12.5"
     implementation "io.jsonwebtoken:jjwt-impl:0.12.5"
     implementation "io.jsonwebtoken:jjwt-jackson:0.12.5"
+    implementation platform("io.awspring.cloud:spring-cloud-aws-dependencies:3.1.0")
+    implementation("io.awspring.cloud:spring-cloud-aws-starter")
+    implementation("io.awspring.cloud:spring-cloud-aws-starter-s3")
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.14.0'
 
 //    implementation 'org.flywaydb:flyway-core:10.2.0'
     compileOnly 'org.projectlombok:lombok'
@@ -151,16 +155,31 @@ jooq {
     }
 }
 
-tasks.register('show_db_config') {
-    doLast {
-        println("DATABASE CONFIG VALUES;")
-        println(dbConfig)
+//tasks.register('show_db_config') {
+//    doLast {
+//        println("DATABASE CONFIG VALUES;")
+//        println(dbConfig)
+//    }
+//}
+//
+//tasks.named("flywayMigrate") {
+//    dependsOn("show_db_config")
+//}
+
+allprojects {
+    tasks.withType(JavaCompile) {
+        options.forkOptions.memoryMaximumSize = '110m'
+    }
+
+    tasks.withType(GroovyCompile) {
+        groovyOptions.forkOptions.memoryMaximumSize = '110m'
     }
 }
 
-tasks.named("flywayMigrate") {
-    dependsOn("show_db_config")
-}
+//tasks.withType(Test).configureEach {
+//    maxParallelForks = 1
+//    forkEvery = 1
+//}
 
 /**
  * Check the state that the test database container is in.

@@ -49,11 +49,19 @@ resource "aws_security_group" "ec2" {
   }
 
   ingress {
-    description     = "Allow incoming SSH traffic from bastion host"
-    from_port       = 22
-    to_port         = 22
+    description     = "Allow incoming traffic from ALB on HTTP"
+    from_port       = 80
+    to_port         = 80
     protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  ingress {
+    description     = "Allow incoming traffic from Postgres RDS database"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.db_main.id]
   }
 
   egress {
@@ -78,7 +86,7 @@ resource "aws_launch_template" "main" {
 #!/bin/bash
 echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config;
 EOF
-)
+  )
 
   monitoring {
     enabled = true

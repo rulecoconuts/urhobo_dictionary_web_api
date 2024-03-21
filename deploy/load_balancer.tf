@@ -19,7 +19,7 @@ resource "aws_security_group" "alb" {
 resource "aws_alb" "alb" {
   name            = "${var.name_space}-ALB-${var.environment}"
   security_groups = [aws_security_group.alb.id]
-  subnets         = aws_subnet.public[*].id
+  subnets         = aws_subnet.private[*].id
 }
 
 resource "aws_alb_target_group" "service" {
@@ -30,14 +30,14 @@ resource "aws_alb_target_group" "service" {
   deregistration_delay = "120"
 
   health_check {
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    interval            = 125
+    healthy_threshold   = var.elb_healthy_threshold
+    unhealthy_threshold = var.elb_unhealthy_threshold
+    interval            = var.elb_health_check_interval
     matcher             = var.health_check_matcher
     path                = var.health_check_endpoint
     port                = "traffic-port"
     protocol            = "HTTP"
-    timeout             = 120
+    timeout             = var.elb_health_check_timeout
   }
 
   depends_on = [aws_alb.alb]

@@ -39,7 +39,7 @@ variable "domain_name" {
 
 variable "ecr_force_delete" {
   type    = bool
-  default = false
+  default = true
 }
 
 variable "vpc_ip" {
@@ -78,12 +78,12 @@ variable "hash" {
 
 variable "cpu_units" {
   type    = number
-  default = 900
+  default = 550
 }
 
 variable "memory" {
   type    = number
-  default = 900
+  default = 550
 }
 
 variable "log_retention_in_days" {
@@ -167,4 +167,34 @@ variable "env_file_s3_bucket_path" {
 variable "db_max_storage" {
   type    = number
   default = 10
+}
+
+variable "health_check_grace_period" {
+  type    = number
+  default = 1800
+}
+
+variable "elb_healthy_threshold" {
+  type    = number
+  default = 2
+}
+
+variable "elb_unhealthy_threshold" {
+  default = 10
+}
+
+variable "elb_health_check_interval" {
+  description = "Interval between health-checks"
+  type        = number
+  default     = 180
+}
+
+variable "elb_health_check_timeout" {
+  description = "Duration for the Elastic load balancer to wait for a task to be ready"
+  type        = number
+  default     = 120
+}
+
+variable "trusted_user_arn" {
+  default = "arn:aws:iam::992382640465:user/langresus_api"
 }

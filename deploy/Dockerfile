@@ -1,4 +1,4 @@
-FROM bellsoft/liberica-openjdk-alpine-musl:17
+FROM amazoncorretto:21.0.2-alpine3.19
 
 WORKDIR /server
 

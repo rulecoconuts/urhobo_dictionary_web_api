@@ -32,7 +32,7 @@ public class PermissionsDataLoader implements SmartInitializingSingleton {
     @Override
     public void afterSingletonsInstantiated() {
         try {
-
+            logger.info("About to attempt loading permissions data");
             // Separate the permissions that exist from those that do not
             Set<String> allPossibleNames = Arrays.stream(PermissionName.values())
                                                  .map(Enum::name)

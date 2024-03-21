@@ -156,6 +156,18 @@ resource "aws_ecs_task_definition" "service" {
           containerPort = var.ecs_container_port
           hostPort      = 80
           protocol      = "tcp"
+        },
+        {
+          containerPort = 5432
+          hostPort      = 5432
+          protocol      = "tcp"
+        }
+      ]
+
+      mountPoints = [
+        {
+          containerPath = "/root/.gradle/caches"
+          sourceVolume  = "${var.name_space}_gradle_cache_volume_2_${var.environment}"
         }
       ]
 
@@ -177,6 +189,15 @@ resource "aws_ecs_task_definition" "service" {
     }
   ])
 
+  volume {
+    name = "${var.name_space}_gradle_cache_volume_2_${var.environment}"
+    docker_volume_configuration {
+      scope         = "shared"
+      autoprovision = true
+      driver        = "local"
+    }
+  }
+
 }
 
 resource "aws_ecs_service" "service" {
@@ -187,6 +208,7 @@ resource "aws_ecs_service" "service" {
   desired_count                      = var.ecs_desired_count
   deployment_minimum_healthy_percent = var.ecs_minimum_healthy_percentage
   deployment_maximum_percent         = var.ecs_maximum_healthy_percentage
+  health_check_grace_period_seconds  = var.health_check_grace_period
 
   load_balancer {
     container_name   = var.service_name
@@ -194,20 +216,29 @@ resource "aws_ecs_service" "service" {
     target_group_arn = aws_alb_target_group.service.arn
   }
 
-  ## Spread tasks evenly across all availability zones for high availability
-  ordered_placement_strategy {
-    type  = "spread"
-    field = "attribute:ecs.availability-zone"
-  }
+  scheduling_strategy = "DAEMON"
 
-  ## Use all the available space on the container
-  ordered_placement_strategy {
-    type  = "binpack"
-    field = "memory"
-  }
+  #  ## Spread tasks evenly across all availability zones for high availability
+  #  ordered_placement_strategy {
+  #    type  = "spread"
+  #    field = "attribute:ecs.availability-zone"
+  #  }
+  #
+  #  ## Use all the available space on the container
+  #  ordered_placement_strategy {
+  #    type  = "binpack"
+  #    field = "memory"
+  #  }
+
 
   ## Do not reset when desired count changes
-  lifecycle {
-    ignore_changes = [desired_count]
-  }
+  #  lifecycle {
+  #    ignore_changes = [desired_count]
+  #  }
+
+  #  force_new_deployment = true
+  #
+  #  triggers = {
+  #    redeploymnet = plantimestamp()
+  #  }
 }

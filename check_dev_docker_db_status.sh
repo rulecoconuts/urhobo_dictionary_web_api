@@ -1,1 +1,1 @@
-docker compose --file dev-db-docker-compose.yml ps --format json --filter status=running
+sudo docker compose --file dev-db-docker-compose.yml ps --format json --filter status=running
