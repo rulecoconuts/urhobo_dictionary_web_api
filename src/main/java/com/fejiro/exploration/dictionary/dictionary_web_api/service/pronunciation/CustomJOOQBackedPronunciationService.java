@@ -105,4 +105,26 @@ public class CustomJOOQBackedPronunciationService implements PronunciationServic
 
         return errors;
     }
+
+    /**
+     * Validate multiple pronunciations before creations.
+     * Note that this just calls {@link com.fejiro.exploration.dictionary.dictionary_web_api.service.CreationService#validateModelForCreation(Object) ValidateModelForCreation}
+     * for each pronunciation. This is allowed because the ValidateModelForCreation method does not perform any expensive DB operations.
+     *
+     * @param models
+     * @return
+     */
+    @Override
+    public Map<PronunciationDomainObject, Map<String, String>> validateModelsForCreation(
+            Iterable<PronunciationDomainObject> models) {
+        Map<PronunciationDomainObject, Map<String, String>> errors = new HashMap<>();
+        for (var model : models) {
+            Map<String, String> modelSpecificErrors = validateModelForCreation(model);
+            if (!modelSpecificErrors.isEmpty()) {
+                errors.put(model, modelSpecificErrors);
+            }
+        }
+
+        return errors;
+    }
 }

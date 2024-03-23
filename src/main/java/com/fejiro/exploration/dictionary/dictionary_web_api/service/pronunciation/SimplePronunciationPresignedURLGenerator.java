@@ -1,6 +1,7 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation;
 
 import com.fejiro.exploration.dictionary.dictionary_web_api.config.service.s3.LangresusS3Config;
+import com.fejiro.exploration.dictionary.dictionary_web_api.data_transfer.word.PronunciationPresignResult;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.user.AppUserDomainObject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ public class SimplePronunciationPresignedURLGenerator implements PronunciationPr
     Logger logger = LoggerFactory.getLogger(SimplePronunciationPresignedURLGenerator.class);
 
     @Override
-    public String generatePresignedUploadURL(PronunciationDomainObject pronunciation) {
+    public PronunciationPresignResult generatePresignedUploadURL(PronunciationDomainObject pronunciation) {
         try (S3Presigner presigner = S3Presigner.create()) {
 
             PutObjectRequest objectRequest = PutObjectRequest.builder()
@@ -46,8 +47,24 @@ public class SimplePronunciationPresignedURLGenerator implements PronunciationPr
             logger.debug(String.format("For pronunciation %s, generated presign url: %s", pronunciation.getWordPartId(),
                                        url));
 
-            return presignedPutObjectRequest.url().toExternalForm();
+            String destinationUrl = generateDestinationUrl(s3Client, objectRequest.bucket(), objectRequest.key());
+
+            return PronunciationPresignResult.builder()
+                                             .presignedUrl(presignedPutObjectRequest.url().toExternalForm())
+                                             .destinationUrl(destinationUrl)
+                                             .build();
         }
+    }
+
+    String generateDestinationUrl(S3Client s3Client, String bucket, String key) {
+        StringBuilder builder = new StringBuilder("https://");
+        builder.append(bucket);
+        builder.append(".s3-");
+        builder.append(s3Client.serviceClientConfiguration().region().toString());
+        builder.append(".amazonaws.com/");
+        builder.append(key);
+
+        return builder.toString();
     }
 
     String generateObjectUploadKey(PronunciationDomainObject pronunciation) {

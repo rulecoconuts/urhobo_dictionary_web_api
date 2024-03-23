@@ -11,4 +11,5 @@ import java.io.Serializable;
 public class PronunciationPresignResult implements Serializable {
     PronunciationDomainObject pronunciation;
     String presignedUrl;
+    String destinationUrl;
 }

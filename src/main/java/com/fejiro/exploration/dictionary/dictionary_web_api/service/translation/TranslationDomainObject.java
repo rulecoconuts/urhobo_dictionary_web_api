@@ -28,4 +28,20 @@ public class TranslationDomainObject implements TemporalAuditable, UserAuditable
 
     Integer createdBy;
     Integer updatedBy;
+
+    /**
+     * Checks to see if this translation is equal to another.
+     * The order of source and target are ignored
+     *
+     * @param other
+     * @return
+     */
+    public boolean equalUnordered(TranslationDomainObject other) {
+        boolean normal = sourceWordPartId.equals(other.sourceWordPartId) && targetWordPartId.equals(
+                other.targetWordPartId);
+        boolean flipped = sourceWordPartId.equals(other.targetWordPartId) && targetWordPartId.equals(
+                other.sourceWordPartId);
+
+        return normal || flipped;
+    }
 }

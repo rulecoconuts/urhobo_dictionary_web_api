@@ -5,14 +5,17 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQ
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.GenericJOOQBackedService;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDataObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Translation;
+import org.jooq.Condition;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 @Component
 public class CustomJOOQBackedTranslationService implements TranslationService, GenericJOOQBackedService<TranslationDomainObject, TranslationDataObject, Long> {
@@ -59,18 +62,13 @@ public class CustomJOOQBackedTranslationService implements TranslationService, G
         if (model.getId() != null) {
             errors.put("id", "ID must be null for new translation");
         }
-        
+
         performSharedValidation(model, errors);
 
         if (!errors.containsKey("source_word_part") && !errors.containsKey("target_word_part")) {
             // If source and target are valid, check if a translation for this pair already exists
             Optional<TranslationDomainObject> matchingTranslation = retrieveOne(
-                    DSL.and(Translation.TRANSLATION
-                                    .SOURCE_WORD_PART_ID.eq(
-                                            model.getSourceWordPartId()),
-                            Translation.TRANSLATION.TARGET_WORD_PART_ID.eq(
-                                    model.getTargetWordPartId())
-                    )
+                    getSourceAndTargetPairEqualCondition(model)
             );
             if (matchingTranslation.isPresent()) {
                 errors.put("duplicate", String.format("Translation of %d to %d", model.getSourceWordPartId(),
@@ -79,6 +77,24 @@ public class CustomJOOQBackedTranslationService implements TranslationService, G
         }
 
         return errors;
+    }
+
+    Condition getSourceAndTargetPairEqualCondition(TranslationDomainObject model) {
+        // Source and target pairs are unordered.
+        // So {source=word1, target=word2} is equal to {target=word1, source=word2}
+        var normal = DSL.and(Translation.TRANSLATION
+                                     .SOURCE_WORD_PART_ID.eq(
+                                             model.getSourceWordPartId()),
+                             Translation.TRANSLATION.TARGET_WORD_PART_ID.eq(
+                                     model.getTargetWordPartId()));
+        var flipped = DSL.and(Translation.TRANSLATION
+                                      .SOURCE_WORD_PART_ID.eq(
+                                              model.getTargetWordPartId()),
+                              Translation.TRANSLATION.TARGET_WORD_PART_ID.eq(
+                                      model.getSourceWordPartId()));
+        return DSL.or(
+                normal, flipped
+        );
     }
 
     @Override
@@ -127,6 +143,87 @@ public class CustomJOOQBackedTranslationService implements TranslationService, G
             errors.put("target_word_part", "Target word part is required");
         } else if (model.getTargetWordPartId() < 1) {
             errors.put("target_word_part", "Target word part must be greater than 0");
+        }
+
+        if (!errors.containsKey("source_word_part") && !errors.containsKey(
+                "target_word_part") && model.getSourceWordPartId().equals(model.getTargetWordPartId())) {
+            String sharedMessage = "Source and target word part cannot be the same";
+            errors.put("source_word_part", sharedMessage);
+            errors.put("target_word_part", sharedMessage);
+        }
+    }
+
+    /**
+     * Validate multiple translations before they are created
+     *
+     * @param models
+     * @return
+     */
+    @Override
+    public Map<TranslationDomainObject, Map<String, String>> validateModelsForCreation(
+            Iterable<TranslationDomainObject> models) {
+        Map<TranslationDomainObject, Map<String, String>> errors = new HashMap<>();
+        List<TranslationDomainObject> modelList = StreamSupport.stream(models.spliterator(), false)
+                                                               .toList();
+
+        // Perform simple shared validation that does not require expensive queries
+        modelList.forEach(model -> performSharedModelValidationForCreation(model, errors));
+
+        // Check for duplicates of any of the translation source and target pairs
+        var condition = DSL.or(modelList
+                                       .stream().map(this::getSourceAndTargetPairEqualCondition).toList());
+
+        List<TranslationDomainObject> matchingTranslations = StreamSupport.stream(retrieveAll(condition).spliterator(),
+                                                                                  false)
+                                                                          .toList();
+
+        modelList.forEach(model -> performMatchingTranslationValidationForCreation(model,
+                                                                                   matchingTranslations,
+                                                                                   errors));
+
+
+        return GenericJOOQBackedService.super.validateModelsForCreation(models);
+    }
+
+    /**
+     * Validate that model is a unique translation
+     *
+     * @param model
+     * @param matchingTranslations
+     * @param errors
+     */
+    void performMatchingTranslationValidationForCreation(TranslationDomainObject model,
+                                                         List<TranslationDomainObject> matchingTranslations,
+                                                         Map<TranslationDomainObject, Map<String, String>> errors) {
+        // Only try to find match if the model does not contain any previous errors
+        if (errors.containsKey(model)) return;
+        var matchOptional = matchingTranslations.stream().filter(model::equalUnordered)
+                                                .findFirst();
+
+        if (matchOptional.isEmpty()) return;
+
+        Map<String, String> translationSpecificErrors = new HashMap<>();
+
+        translationSpecificErrors.put("_", "Source and target word-part pair not unique");
+    }
+
+    void performSharedModelValidationForCreation(TranslationDomainObject model,
+                                                 Map<TranslationDomainObject, Map<String, String>> errors) {
+        Map<String, String> modelSpecificErrors = errors.get(model);
+        boolean didModelStartWithErrors = modelSpecificErrors != null;
+
+        if (!didModelStartWithErrors) {
+            modelSpecificErrors = new HashMap<>();
+        }
+
+        if (model.getId() != null) {
+            modelSpecificErrors.put("id", "ID must be null for new translation");
+        }
+
+        performSharedValidation(model, modelSpecificErrors);
+
+        if (!didModelStartWithErrors && !modelSpecificErrors.isEmpty()) {
+            errors.put(model, modelSpecificErrors);
         }
     }
 }

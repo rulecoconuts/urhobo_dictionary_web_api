@@ -88,10 +88,11 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
         Map<T, Map<String, String>> errors = validateModelsForCreation(models);
         if (errors.isEmpty()) return;
 
-        throw new ApiExceptionWithComplexObjectMessageMap("Error while creating domain models",
-                                                          HttpStatus.BAD_REQUEST,
-                                                          errors,
-                                                          (model) -> generateErrorLabel((T) model));
+        throw new ApiExceptionWithComplexObjectMessageMap(
+                String.format("Error while creating domain models; %s", getDomainClass().toString()),
+                HttpStatus.BAD_REQUEST,
+                errors,
+                (model) -> generateErrorLabel((T) model));
 
     }
 
@@ -183,10 +184,11 @@ public interface GenericJOOQBackedService<T, D, I> extends CRUDService<T, I>, Co
         Map<T, Map<String, String>> errors = validateModelsForUpdate(models, existingCopies);
         if (errors.isEmpty()) return;
 
-        throw new ApiExceptionWithComplexObjectMessageMap("Error while updating domain models",
-                                                          HttpStatus.BAD_REQUEST,
-                                                          errors,
-                                                          (model) -> generateErrorLabel((T) model));
+        throw new ApiExceptionWithComplexObjectMessageMap(
+                String.format("Error while updating domain models: %s", getDomainClass().toString()),
+                HttpStatus.BAD_REQUEST,
+                errors,
+                (model) -> generateErrorLabel((T) model));
     }
 
     @Override

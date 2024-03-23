@@ -158,13 +158,10 @@ public class WordRESTController {
         pronunciations.forEach(pronunciationDomainObject -> pronunciationDomainObject.setWordPartId(
                 sourceWordPart.getId()));
         return pronunciations.stream()
-                             .map(pronunciationDomainObject -> PronunciationPresignResult.builder()
-                                                                                         .pronunciation(
-                                                                                                 pronunciationDomainObject)
-                                                                                         .presignedUrl(
-                                                                                                 pronunciationPresignedURLGenerator.generatePresignedUploadURL(
-                                                                                                         pronunciationDomainObject))
-                                                                                         .build())
+                             .map(pronunciationDomainObject ->
+                                          pronunciationPresignedURLGenerator.generatePresignedUploadURL(
+                                                  pronunciationDomainObject)
+                             )
                              .toList();
     }
 
@@ -219,7 +216,6 @@ public class WordRESTController {
                                                                            .build())
                 .toList();
 
-        // TODO: Cross check that createAll method works properly
         Iterable<TranslationDomainObject> newTranslations = translationService.createAll(translations);
 
         return StreamSupport.stream(newTranslations.spliterator(), false)
@@ -238,17 +234,11 @@ public class WordRESTController {
     List<PartWordPartPairDomainObject> createWordParts(WordDomainObject word,
                                                        List<WordCreationWordPartSpecificationDTO> partSpecificationDTOS) throws IllegalArgumentExceptionWithMessageMap, ApiExceptionWithComplexObjectMessageMap {
         List<WordPartDomainObject> wordParts = partSpecificationDTOS.stream()
-                                                                    .map(partSpecificationDTO -> WordPartDomainObject.builder()
-                                                                                                                     .wordId(word.getId())
-                                                                                                                     .partId(partSpecificationDTO.getPart()
-                                                                                                                                                 .getId())
-                                                                                                                     .note(partSpecificationDTO.getNote())
-                                                                                                                     .definition(
-                                                                                                                             partSpecificationDTO.getDefinition())
-                                                                                                                     .build())
+                                                                    .map(partSpecificationDTO -> generateWordPartCreationModelFromPartSpecification(
+                                                                            word,
+                                                                            partSpecificationDTO))
                                                                     .toList();
 
-        // TODO: Cross check that createAll method works
         Iterable<WordPartDomainObject> newWordParts = wordPartService.createAll(wordParts);
 
         List<PartWordPartPairDomainObject> partWordPartPairs = new ArrayList<>();
@@ -272,5 +262,17 @@ public class WordRESTController {
         }
 
         return partWordPartPairs;
+    }
+
+    private static WordPartDomainObject generateWordPartCreationModelFromPartSpecification(WordDomainObject word,
+                                                                                           WordCreationWordPartSpecificationDTO partSpecificationDTO) {
+        return WordPartDomainObject.builder()
+                                   .wordId(word.getId())
+                                   .partId(partSpecificationDTO.getPart()
+                                                               .getId())
+                                   .note(partSpecificationDTO.getNote())
+                                   .definition(
+                                           partSpecificationDTO.getDefinition())
+                                   .build();
     }
 }
