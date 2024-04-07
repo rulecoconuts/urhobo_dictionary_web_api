@@ -1,1 +1,1 @@
-sudo docker build -f ./Dockerfile -t afejith/urhobo_dictionary_server:latest ../
+docker build -f ./Dockerfile -t afejith/urhobo_dictionary_server:latest ../

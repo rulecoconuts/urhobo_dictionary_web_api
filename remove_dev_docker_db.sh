@@ -1,1 +1,1 @@
-docker compose --file dev-db-docker-compose.yml rm
+docker-compose --file dev-db-docker-compose.yml rm

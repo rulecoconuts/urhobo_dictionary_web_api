@@ -1,4 +1,4 @@
-sudo docker build -f ./Dockerfile -t afejith/urhobo_dictionary_server:latest ../
+docker build -f ./Dockerfile -t afejith/urhobo_dictionary_server:latest ../
 
 terraform init
 
@@ -12,6 +12,6 @@ aws ecr get-login-password --profile afejith_admin_proxy | sudo docker login --u
 
 # Pull docker image and push to ECR
 #sudo docker pull --platform linux/amd64 afejith/urhobo_dictionary_server:latest
-sudo docker tag afejith/urhobo_dictionary_server:latest $REPO:latest
-sudo docker push $REPO:latest
+docker tag afejith/urhobo_dictionary_server:latest $REPO:latest
+docker push $REPO:latest
 

@@ -216,6 +216,8 @@ public class WordRESTController {
                                                                            .build())
                 .toList();
 
+        if (translations.isEmpty()) return translations;
+
         Iterable<TranslationDomainObject> newTranslations = translationService.createAll(translations);
 
         return StreamSupport.stream(newTranslations.spliterator(), false)

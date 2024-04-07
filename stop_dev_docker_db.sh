@@ -1,1 +1,1 @@
-sudo docker compose --file dev-db-docker-compose.yml down
+docker-compose --file dev-db-docker-compose.yml down

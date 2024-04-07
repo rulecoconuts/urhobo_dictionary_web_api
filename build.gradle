@@ -196,7 +196,9 @@ String checkTestDbContainerState() {
         return scriptOutputStream.toString()
     }
 
-    def parsedOutput = (new JsonSlurper().parseText(checkOutput) as ArrayList)[0] as Map<String, Object>
+//    System.out.printf("Check output: %s\n", checkOutput);
+
+    def parsedOutput = (new JsonSlurper().parseText(checkOutput)) as Map<String, Object>
 
 
     return parsedOutput.get("State") as String

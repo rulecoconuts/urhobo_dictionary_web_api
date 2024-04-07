@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.regions.providers.AwsRegionProvider;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -26,6 +28,9 @@ public class SimplePronunciationPresignedURLGenerator implements PronunciationPr
     LangresusS3Config langresusS3Config;
 
     Logger logger = LoggerFactory.getLogger(SimplePronunciationPresignedURLGenerator.class);
+
+    @Autowired
+    AwsRegionProvider awsRegionProvider;
 
     @Override
     public PronunciationPresignResult generatePresignedUploadURL(PronunciationDomainObject pronunciation) {
@@ -52,19 +57,27 @@ public class SimplePronunciationPresignedURLGenerator implements PronunciationPr
             return PronunciationPresignResult.builder()
                                              .presignedUrl(presignedPutObjectRequest.url().toExternalForm())
                                              .destinationUrl(destinationUrl)
+                                             .pronunciation(pronunciation)
                                              .build();
         }
     }
 
     String generateDestinationUrl(S3Client s3Client, String bucket, String key) {
-        StringBuilder builder = new StringBuilder("https://");
-        builder.append(bucket);
-        builder.append(".s3-");
-        builder.append(s3Client.serviceClientConfiguration().region().toString());
-        builder.append(".amazonaws.com/");
-        builder.append(key);
+        try {
+//            var clientConfig = s3Client.serviceClientConfiguration();
+            Region region = awsRegionProvider.getRegion();
+            String regionString = "ca-central-1";
+            StringBuilder builder = new StringBuilder("https://");
+            builder.append(bucket);
+            builder.append(".s3-");
+            builder.append(regionString);
+            builder.append(".amazonaws.com/");
+            builder.append(key);
 
-        return builder.toString();
+            return builder.toString();
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     String generateObjectUploadKey(PronunciationDomainObject pronunciation) {
