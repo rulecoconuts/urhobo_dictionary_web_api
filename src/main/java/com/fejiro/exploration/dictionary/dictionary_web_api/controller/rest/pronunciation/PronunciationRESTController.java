@@ -1,5 +1,6 @@
 package com.fejiro.exploration.dictionary.dictionary_web_api.controller.rest.pronunciation;
 
+import com.fejiro.exploration.dictionary.dictionary_web_api.data_transfer.word.PronunciationPresignResult;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.ApiExceptionWithComplexObjectMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.error_handling.IllegalArgumentExceptionWithMessageMap;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation.PronunciationDomainObject;
@@ -7,10 +8,7 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciatio
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation.PronunciationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.util.List;
@@ -31,8 +29,9 @@ public class PronunciationRESTController {
      * @param pronunciationDomainObject
      * @return
      */
-    @PostMapping("/presigned-upload-url")
-    ResponseEntity generatePresignedUrl(@RequestBody PronunciationDomainObject pronunciationDomainObject) {
+    @PostMapping("/presign-upload-url")
+    ResponseEntity<PronunciationPresignResult> generatePresignedUrl(
+            @RequestBody PronunciationDomainObject pronunciationDomainObject) {
         return ResponseEntity.ok(
                 pronunciationPresignedURLGenerator.generatePresignedUploadURL(pronunciationDomainObject));
     }
@@ -61,5 +60,12 @@ public class PronunciationRESTController {
     ResponseEntity createAll(
             @RequestBody List<PronunciationDomainObject> pronunciations) throws IllegalArgumentExceptionWithMessageMap, ApiExceptionWithComplexObjectMessageMap {
         return ResponseEntity.ok(pronunciationService.createAll(pronunciations));
+    }
+
+    @DeleteMapping("/{id}")
+    ResponseEntity delete(@PathVariable Long id) {
+        pronunciationService.deleteById(id);
+
+        return ResponseEntity.ok().build();
     }
 }

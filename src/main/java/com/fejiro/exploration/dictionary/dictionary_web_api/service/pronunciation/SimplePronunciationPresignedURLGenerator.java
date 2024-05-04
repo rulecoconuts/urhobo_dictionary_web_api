@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.regions.providers.AwsRegionProvider;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -39,6 +40,7 @@ public class SimplePronunciationPresignedURLGenerator implements PronunciationPr
             PutObjectRequest objectRequest = PutObjectRequest.builder()
                                                              .bucket(langresusS3Config.getBucket())
                                                              .key(generateObjectUploadKey(pronunciation))
+                                                             .acl(ObjectCannedACL.PUBLIC_READ)
                                                              .build();
 
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()

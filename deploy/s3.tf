@@ -23,6 +23,8 @@ resource "aws_s3_bucket_public_access_block" "main" {
   restrict_public_buckets = false
 }
 
+data "aws_canonical_user_id" "current" {}
+
 resource "aws_s3_bucket_acl" "main" {
   bucket     = aws_s3_bucket.main.id
   depends_on = [
@@ -30,7 +32,29 @@ resource "aws_s3_bucket_acl" "main" {
     aws_s3_bucket_public_access_block.main
   ]
 
-  acl = "public-read"
+  #  acl = "public-read"
+
+  access_control_policy {
+    #    grant {
+    #      grantee {
+    #        type = "Group"
+    #        uri  = "http://acs.amazonaws.com/groups/global/AllUsers"
+    #      }
+    #      permission = "READ"
+    #    }
+
+    grant {
+      permission = "FULL_CONTROL"
+      grantee {
+        type = "CanonicalUser"
+        id   = "578e230fa0b7e9257c94ec7df07a092d39bbe9a57235a9fb80fc29cb27146b0f"
+      }
+    }
+
+    owner {
+      id = data.aws_canonical_user_id.current.id
+    }
+  }
 }
 
 ### Allow SDK user to access bucket

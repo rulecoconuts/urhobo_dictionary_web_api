@@ -3,7 +3,10 @@ package com.fejiro.exploration.dictionary.dictionary_web_api.service.translation
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQCRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.GenericJOOQBackedService;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.language.LanguageDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDataObject;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDomainObject;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.WordPartDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Translation;
 import org.jooq.Condition;
 import org.jooq.impl.DSL;
@@ -225,5 +228,46 @@ public class CustomJOOQBackedTranslationService implements TranslationService, G
         if (!didModelStartWithErrors && !modelSpecificErrors.isEmpty()) {
             errors.put(model, modelSpecificErrors);
         }
+    }
+
+    /**
+     * Fetch translations that contain the word part as a source or target
+     *
+     * @param wordPart
+     * @return
+     */
+    @Override
+    public Iterable<FullTranslation> fetchTranslations(WordPartDomainObject wordPart,
+                                                       LanguageDomainObject targetLanguage) {
+
+        var dsl = getGenericJOOQDAO().getDsl();
+        var isSource = DSL.and(Translation.TRANSLATION.SOURCE_WORD_PART_ID.eq(wordPart.getId()),
+                               Translation.TRANSLATION.fkTranslationTargetWord().word().LANGUAGE_ID.eq(
+                                       targetLanguage.getId())
+        );
+        var isTarget = DSL.and(Translation.TRANSLATION.TARGET_WORD_PART_ID.eq(wordPart.getId()),
+                               Translation.TRANSLATION.fkTranslationSourceWord().word().LANGUAGE_ID.eq(
+                                       targetLanguage.getId())
+        );
+        var condition = DSL.or(isSource, isTarget);
+        var results = dsl.select(Translation.TRANSLATION,
+                                 Translation.TRANSLATION.fkTranslationSourceWord(),
+                                 Translation.TRANSLATION.fkTranslationSourceWord().word(),
+                                 Translation.TRANSLATION.fkTranslationTargetWord(),
+                                 Translation.TRANSLATION.fkTranslationTargetWord().word())
+                         .from(Translation.TRANSLATION)
+                         .where(condition)
+                         .orderBy(Translation.TRANSLATION.ID)
+                         .fetch(record -> FullTranslation.builder()
+                                                         .translation(record.component1()
+                                                                            .into(TranslationDomainObject.class))
+                                                         .sourceWordPart(
+                                                                 record.component2().into(WordPartDomainObject.class))
+                                                         .sourceWord(record.component3().into(WordDomainObject.class))
+                                                         .targetWordPart(
+                                                                 record.component4().into(WordPartDomainObject.class))
+                                                         .targetWord(record.component5().into(WordDomainObject.class))
+                                                         .build());
+        return results;
     }
 }

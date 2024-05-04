@@ -115,7 +115,7 @@ public class CustomJOOQBackedWordService implements WordService, GenericJOOQBack
             errors.put("language", "Language is required");
         } else if (model.getLanguageId() < 1) {
             errors.put("language", "Language id must be greater than 0");
-        } else if (existingCopy.isPresent() && model.getLanguageId().equals(existingCopy.get().getLanguageId())) {
+        } else if (existingCopy.isPresent() && !model.getLanguageId().equals(existingCopy.get().getLanguageId())) {
             errors.put("language", "Language cannot be changed");
         }
 
@@ -212,12 +212,10 @@ public class CustomJOOQBackedWordService implements WordService, GenericJOOQBack
                          .orderBy(getGenericJOOQDAO().getSortFields(pageable.getSort()))
                          .limit(pageable.getPageSize())
                          .offset(pageable.getOffset())
-                         .fetch(r -> {
-                             return FullWordPartDomainObject.builder()
-                                                            .word(r.component1().into(WordDomainObject.class))
-                                                            .parts(r.component2())
-                                                            .build();
-                         });
+                         .fetch(r -> FullWordPartDomainObject.builder()
+                                                             .word(r.component1().into(WordDomainObject.class))
+                                                             .parts(r.component2())
+                                                             .build());
         return new PageImpl<>(results, pageable,
                               getGenericJOOQDAO()
                                       .count(Word.WORD.NAME.likeIgnoreCase(namePattern)));

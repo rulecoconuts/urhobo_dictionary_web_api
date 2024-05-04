@@ -69,6 +69,18 @@ public class WordRESTController {
     }
 
     /**
+     * Update a single word domain model
+     *
+     * @param wordDomainObject
+     * @return
+     */
+    @PutMapping
+    ResponseEntity<WordDomainObject> updateWord(
+            @RequestBody WordDomainObject wordDomainObject) throws IllegalArgumentExceptionWithMessageMap {
+        return ResponseEntity.ok(wordService.update(wordDomainObject));
+    }
+
+    /**
      * Create a word
      *
      * @param creationRequestDTO
