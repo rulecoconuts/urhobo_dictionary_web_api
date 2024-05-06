@@ -46,6 +46,12 @@ public class WordPartRESTController {
         return ResponseEntity.ok(wordPartService.create(wordPart));
     }
 
+    @DeleteMapping("/{id}")
+    ResponseEntity delete(@PathVariable Long id) {
+        wordPartService.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{word_part_id}/pronunciations")
     ResponseEntity<List<PronunciationDomainObject>> getPronunciations(@PathVariable("word_part_id") Long wordPartId) {
         var iterable = pronunciationService.getPronunciationsOfWordPart(WordPartDomainObject.builder()

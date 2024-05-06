@@ -45,6 +45,12 @@ public class WordRESTController {
     @Autowired
     PronunciationPresignedURLGenerator pronunciationPresignedURLGenerator;
 
+    @DeleteMapping("/{id}")
+    ResponseEntity delete(@PathVariable Long id) {
+        wordService.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/nameSearch")
     ResponseEntity<Page<WordDomainObject>> searchByName(@RequestParam("name") String namePattern,
                                                         Pageable pageable) {
