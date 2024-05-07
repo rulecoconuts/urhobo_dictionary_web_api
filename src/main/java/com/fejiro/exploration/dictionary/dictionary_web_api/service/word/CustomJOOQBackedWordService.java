@@ -5,10 +5,14 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.database.GenericJOOQ
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.GenericJOOQBackedService;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.language.LanguageDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.part_of_speech.PartOfSpeechDomainObject;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation.PronunciationDomainObject;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation.PronunciationService;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.s3_utils.S3Utils;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.FullWordPartDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.PartWordPartPairDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.WordPartDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Language;
+import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Pronunciation;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Word;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.WordPart;
 import org.jooq.impl.DSL;
@@ -20,8 +24,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 @Component
 public class CustomJOOQBackedWordService implements WordService, GenericJOOQBackedService<WordDomainObject, WordDataObject, Long> {
@@ -30,6 +36,12 @@ public class CustomJOOQBackedWordService implements WordService, GenericJOOQBack
 
     @Autowired
     CRUDDAO<WordDataObject, Long> wordCRUDDAO;
+
+    @Autowired
+    PronunciationService pronunciationService;
+
+    @Autowired
+    S3Utils s3Utils;
 
     @Override
     public ConversionService getConversionService() {
@@ -219,5 +231,17 @@ public class CustomJOOQBackedWordService implements WordService, GenericJOOQBack
         return new PageImpl<>(results, pageable,
                               getGenericJOOQDAO()
                                       .count(Word.WORD.NAME.likeIgnoreCase(namePattern)));
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        Iterable<PronunciationDomainObject> pronunciations = pronunciationService.getPronunciationsOfWord(
+                WordDomainObject.builder()
+                                .id(id)
+                                .build());
+        Iterable<String> urls = StreamSupport.stream(pronunciations.spliterator(), false)
+                                             .map(PronunciationDomainObject::getAudioUrl).toList();
+        GenericJOOQBackedService.super.deleteById(id);
+        s3Utils.deleteObjects(urls);
     }
 }

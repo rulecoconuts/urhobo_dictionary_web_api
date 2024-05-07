@@ -4,6 +4,7 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.config.service.s3.La
 import com.fejiro.exploration.dictionary.dictionary_web_api.database.CRUDDAO;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.GenericJOOQBackedService;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.s3_utils.S3Utils;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.WordPartDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Pronunciation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -152,5 +154,10 @@ public class CustomJOOQBackedPronunciationService implements PronunciationServic
 
         // Delete pronunciation audio file
         s3Utils.deleteObject(pronunciation.get().getAudioUrl());
+    }
+
+    @Override
+    public Iterable<PronunciationDomainObject> getPronunciationsOfWord(WordDomainObject word) {
+        return retrieveAll(Pronunciation.PRONUNCIATION.wordPart().word().ID.eq(word.getId()));
     }
 }

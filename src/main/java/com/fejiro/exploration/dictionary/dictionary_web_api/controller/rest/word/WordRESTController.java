@@ -7,6 +7,7 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.service.language.Lan
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.part_of_speech.PartOfSpeechDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation.PronunciationDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation.PronunciationPresignedURLGenerator;
+import com.fejiro.exploration.dictionary.dictionary_web_api.service.pronunciation.PronunciationService;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.translation.TranslationDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.translation.TranslationService;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDomainObject;
@@ -44,6 +45,9 @@ public class WordRESTController {
 
     @Autowired
     PronunciationPresignedURLGenerator pronunciationPresignedURLGenerator;
+
+    @Autowired
+    PronunciationService pronunciationService;
 
     @DeleteMapping("/{id}")
     ResponseEntity delete(@PathVariable Long id) {
