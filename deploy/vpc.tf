@@ -107,5 +107,4 @@ resource "aws_vpc_endpoint" "s3_gateway" {
   service_name      = "com.amazonaws.${var.region}.s3"
   vpc_id            = aws_vpc.main.id
   vpc_endpoint_type = "Gateway"
-  #  subnet_ids        = aws_subnet.private.*.id
 }

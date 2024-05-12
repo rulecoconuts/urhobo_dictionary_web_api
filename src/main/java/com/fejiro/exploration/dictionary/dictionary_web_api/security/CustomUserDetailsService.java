@@ -26,10 +26,10 @@ public class CustomUserDetailsService implements UserDetailsService {
         boolean shouldFindByEmail = EmailValidator.getInstance().isValid(username);
         Optional<AppUserDomainObject> userData;
         if (shouldFindByEmail) {
-            
+
             userData = userService.findByEmail(username);
         } else {
-
+            
             userData = userService.findByUsername(username);
         }
 
