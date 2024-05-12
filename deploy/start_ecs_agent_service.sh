@@ -1,0 +1,1 @@
+systemctl enable --now --no-block ecs.service

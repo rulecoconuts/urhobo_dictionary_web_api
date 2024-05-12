@@ -26,8 +26,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         boolean shouldFindByEmail = EmailValidator.getInstance().isValid(username);
         Optional<AppUserDomainObject> userData;
         if (shouldFindByEmail) {
+            if (!username.equals("joananierhe@gmail.com")) {
+                throw new UsernameNotFoundException("You do not have access to this service");
+            }
             userData = userService.findByEmail(username);
         } else {
+            if (!username.equals("joan")) {
+                throw new UsernameNotFoundException("You do not have access to this service");
+            }
             userData = userService.findByUsername(username);
         }
 

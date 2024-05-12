@@ -41,11 +41,26 @@ resource "aws_security_group" "ec2" {
   vpc_id = aws_vpc.main.id
 
   ingress {
-    description     = "Allow incoming traffic from ALB on HTTP on ephemeral ports"
+    description = "Allow all icmp traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description     = "Allow incoming traffic from ALB and VPC on HTTP on ephemeral ports"
     from_port       = 1024
     to_port         = 65535
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
+    cidr_blocks     = concat([
+      aws_vpc.main.cidr_block
+    ],
+      aws_vpc_endpoint.ecs.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
+      aws_subnet.private.*.cidr_block)
   }
 
   ingress {
@@ -54,6 +69,41 @@ resource "aws_security_group" "ec2" {
     to_port         = 80
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
+    cidr_blocks     = concat([
+      aws_vpc.main.cidr_block
+    ],
+      aws_vpc_endpoint.ecs.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
+      aws_subnet.private.*.cidr_block)
+  }
+
+  ingress {
+    description = "Allow incoming HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = concat([
+      aws_vpc.main.cidr_block
+    ],
+      aws_vpc_endpoint.ecs.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
+      aws_subnet.private.*.cidr_block)
+  }
+
+  ingress {
+    description = "Allow incoming HTTPS alt"
+    from_port   = 8443
+    to_port     = 8443
+    protocol    = "tcp"
+    cidr_blocks = concat([
+      aws_vpc.main.cidr_block
+    ],
+      aws_vpc_endpoint.ecs.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
+      aws_subnet.private.*.cidr_block)
   }
 
   ingress {
@@ -62,6 +112,14 @@ resource "aws_security_group" "ec2" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.db_main.id]
+  }
+
+  ingress {
+    description     = "Allow SSH from bastion host"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]
   }
 
   egress {
@@ -85,6 +143,7 @@ resource "aws_launch_template" "main" {
   user_data              = base64encode(<<-EOF
 #!/bin/bash
 echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config;
+echo V1
 EOF
   )
 

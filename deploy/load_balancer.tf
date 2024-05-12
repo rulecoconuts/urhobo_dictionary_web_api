@@ -2,6 +2,34 @@ resource "aws_security_group" "alb" {
   name   = "${var.name_space}_ALB_SecurityGroup_${var.environment}"
   vpc_id = aws_vpc.main.id
 
+  ingress {
+    description = "Allow incoming HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = concat([
+      aws_vpc.main.cidr_block
+    ],
+      aws_vpc_endpoint.ecs.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
+      aws_subnet.private.*.cidr_block)
+  }
+
+  ingress {
+    description = "Allow incoming HTTPS alt"
+    from_port   = 8443
+    to_port     = 8443
+    protocol    = "tcp"
+    cidr_blocks = concat([
+      aws_vpc.main.cidr_block
+    ],
+      aws_vpc_endpoint.ecs.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
+      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
+      aws_subnet.private.*.cidr_block)
+  }
+
   egress {
     description = "Allow all outgoing traffic"
     from_port   = 0

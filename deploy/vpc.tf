@@ -61,3 +61,51 @@ resource "aws_main_route_table_association" "private_main" {
   vpc_id         = aws_vpc.main.id
   route_table_id = aws_route_table.private.id
 }
+
+/*
+The following endpoints are necessary for private VPC
+com.amazonaws.region.ecs-agent
+com.amazonaws.region.ecs-telemetry
+com.amazonaws.region.ecs
+*/
+resource "aws_vpc_endpoint" "ecs_agent" {
+  service_name      = "com.amazonaws.${var.region}.ecs-agent"
+  vpc_id            = aws_vpc.main.id
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = aws_subnet.private.*.id
+}
+
+resource "aws_vpc_endpoint" "ecs_telemetry" {
+  service_name      = "com.amazonaws.${var.region}.ecs-telemetry"
+  vpc_id            = aws_vpc.main.id
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = aws_subnet.private.*.id
+}
+
+resource "aws_vpc_endpoint" "ecs" {
+  service_name      = "com.amazonaws.${var.region}.ecs"
+  vpc_id            = aws_vpc.main.id
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = aws_subnet.private.*.id
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  service_name      = "com.amazonaws.${var.region}.ecr.dkr"
+  vpc_id            = aws_vpc.main.id
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = aws_subnet.private.*.id
+}
+
+resource "aws_vpc_endpoint" "ecr_api" {
+  service_name      = "com.amazonaws.${var.region}.ecr.api"
+  vpc_id            = aws_vpc.main.id
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = aws_subnet.private.*.id
+}
+
+resource "aws_vpc_endpoint" "s3_gateway" {
+  service_name      = "com.amazonaws.${var.region}.s3"
+  vpc_id            = aws_vpc.main.id
+  vpc_endpoint_type = "Gateway"
+  #  subnet_ids        = aws_subnet.private.*.id
+}

@@ -7,6 +7,8 @@ resource "aws_autoscaling_group" "ecs_autoscaling_group" {
   protect_from_scale_in = false
   #  desired_capacity      = var.ecs_desired_count
 
+  target_group_arns = [aws_alb_target_group.service.arn]
+
   enabled_metrics = [
     "GroupMinSize",
     "GroupMaxSize",
@@ -20,11 +22,16 @@ resource "aws_autoscaling_group" "ecs_autoscaling_group" {
 
   launch_template {
     id      = aws_launch_template.main.id
-    version = "$Latest"
+    version = aws_launch_template.main.latest_version
   }
 
   instance_refresh {
     strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+      skip_matching          = true
+    }
+    triggers = ["launch_template"]
   }
 
   lifecycle {
