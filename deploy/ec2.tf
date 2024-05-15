@@ -57,9 +57,6 @@ resource "aws_security_group" "ec2" {
     cidr_blocks     = concat([
       aws_vpc.main.cidr_block
     ],
-      aws_vpc_endpoint.ecs.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
       aws_subnet.private.*.cidr_block)
   }
 
@@ -72,9 +69,6 @@ resource "aws_security_group" "ec2" {
     cidr_blocks     = concat([
       aws_vpc.main.cidr_block
     ],
-      aws_vpc_endpoint.ecs.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
       aws_subnet.private.*.cidr_block)
   }
 
@@ -86,9 +80,6 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = concat([
       aws_vpc.main.cidr_block
     ],
-      aws_vpc_endpoint.ecs.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
       aws_subnet.private.*.cidr_block)
   }
 
@@ -100,9 +91,6 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = concat([
       aws_vpc.main.cidr_block
     ],
-      aws_vpc_endpoint.ecs.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
       aws_subnet.private.*.cidr_block)
   }
 
@@ -128,6 +116,13 @@ resource "aws_security_group" "ec2" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 data "aws_ssm_parameter" "ecs_node_ami" {
@@ -135,20 +130,25 @@ data "aws_ssm_parameter" "ecs_node_ami" {
 }
 
 resource "aws_launch_template" "main" {
-  name                   = "${var.name_space}_LaunchTemplate_${var.environment}"
-  image_id               = data.aws_ssm_parameter.ecs_node_ami.value
-  instance_type          = var.ec2_instance_type
-  key_name               = aws_key_pair.default.key_name
-  vpc_security_group_ids = [aws_security_group.ec2.id]
-  user_data              = base64encode(<<-EOF
+  name          = "${var.name_space}_LaunchTemplate_${var.environment}"
+  image_id      = data.aws_ssm_parameter.ecs_node_ami.value
+  instance_type = var.ec2_instance_type
+  key_name      = aws_key_pair.default.key_name
+  #  vpc_security_group_ids = [aws_security_group.ec2.id]
+  user_data     = base64encode(<<-EOF
 #!/bin/bash
-echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config;
-echo V1
+echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
+echo V11
 EOF
   )
 
   monitoring {
     enabled = true
+  }
+
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.ec2.id]
   }
 
   iam_instance_profile {

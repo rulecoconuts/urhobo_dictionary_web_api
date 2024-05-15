@@ -10,9 +10,6 @@ resource "aws_security_group" "alb" {
     cidr_blocks = concat([
       aws_vpc.main.cidr_block
     ],
-      aws_vpc_endpoint.ecs.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
       aws_subnet.private.*.cidr_block)
   }
 
@@ -24,9 +21,6 @@ resource "aws_security_group" "alb" {
     cidr_blocks = concat([
       aws_vpc.main.cidr_block
     ],
-      aws_vpc_endpoint.ecs.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_telemetry.cidr_blocks.*,
-      aws_vpc_endpoint.ecs_agent.cidr_blocks.*,
       aws_subnet.private.*.cidr_block)
   }
 

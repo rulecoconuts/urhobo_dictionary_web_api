@@ -3,6 +3,7 @@ resource "aws_ecs_cluster" "main" {
 
   lifecycle { create_before_destroy = true }
 
+
   tags = {
     Name = "${var.name_space}_ECSCluster_${var.environment}"
   }
@@ -160,6 +161,11 @@ resource "aws_ecs_task_definition" "service" {
         {
           containerPort = 5432
           hostPort      = 5432
+          protocol      = "tcp"
+        },
+        {
+          containerPort = 443
+          hostPort      = 443
           protocol      = "tcp"
         }
       ]
