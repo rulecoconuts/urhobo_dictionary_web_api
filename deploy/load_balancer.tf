@@ -7,10 +7,7 @@ resource "aws_security_group" "alb" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = concat([
-      aws_vpc.main.cidr_block
-    ],
-      aws_subnet.private.*.cidr_block)
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
@@ -18,10 +15,7 @@ resource "aws_security_group" "alb" {
     from_port   = 8443
     to_port     = 8443
     protocol    = "tcp"
-    cidr_blocks = concat([
-      aws_vpc.main.cidr_block
-    ],
-      aws_subnet.private.*.cidr_block)
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {

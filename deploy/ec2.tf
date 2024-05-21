@@ -73,11 +73,12 @@ resource "aws_security_group" "ec2" {
   }
 
   ingress {
-    description = "Allow incoming HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = concat([
+    description     = "Allow incoming HTTPS"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+    cidr_blocks     = concat([
       aws_vpc.main.cidr_block
     ],
       aws_subnet.private.*.cidr_block)
@@ -102,13 +103,13 @@ resource "aws_security_group" "ec2" {
     security_groups = [aws_security_group.db_main.id]
   }
 
-  ingress {
-    description     = "Allow SSH from bastion host"
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
-  }
+  #  ingress {
+  #    description     = "Allow SSH from bastion host"
+  #    from_port       = 22
+  #    to_port         = 22
+  #    protocol        = "tcp"
+  #    security_groups = [aws_security_group.bastion.id]
+  #  }
 
   egress {
     from_port   = 0

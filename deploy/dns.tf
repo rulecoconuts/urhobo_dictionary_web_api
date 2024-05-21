@@ -11,6 +11,16 @@ resource "aws_route53_zone" "service" {
   }
 }
 
+# -- Link subdomain hosted zone to top hosted zone
+resource "aws_route53_record" "top_link" {
+  name    = "${var.environment}"
+  type    = "NS"
+  zone_id = data.aws_route53_zone.top.zone_id
+  ttl     = 86400
+
+  records = aws_route53_zone.service.name_servers
+}
+
 #resource "aws_route53_record" "service" {
 #  zone_id = aws_route53_zone.service.zone_id
 #  name    = aws_route53_zone.service.name

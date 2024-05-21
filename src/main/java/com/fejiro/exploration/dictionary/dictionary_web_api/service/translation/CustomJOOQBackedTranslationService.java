@@ -8,6 +8,7 @@ import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDat
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word.WordDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.service.word_part.WordPartDomainObject;
 import com.fejiro.exploration.dictionary.dictionary_web_api.tables.Translation;
+import io.micrometer.observation.annotation.Observed;
 import org.jooq.Condition;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -237,6 +238,7 @@ public class CustomJOOQBackedTranslationService implements TranslationService, G
      * @return
      */
     @Override
+    @Observed(name = "fetchTranslations")
     public Iterable<FullTranslation> fetchTranslations(WordPartDomainObject wordPart,
                                                        LanguageDomainObject targetLanguage) {
 
