@@ -1,0 +1,409 @@
+terraform {
+  backend "remote" {
+    organization = "coconut_projects"
+    workspaces {
+      name = "urhobo_dictionary_workspace"
+    }
+  }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.39"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ca-central-1"
+}
+
+# -- VPC --
+data "aws_availability_zones" "available" { state = "available" }
+
+locals {
+  azs_count = 2
+  azs_names = data.aws_availability_zones.available.names
+
+}
+
+resource "aws_vpc" "main" {
+  cidr_block           = "10.30.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags                 = {
+    Name = "urhobo_dictionary_vpc"
+  }
+}
+
+resource "aws_subnet" "public" {
+  count                   = local.azs_count
+  vpc_id                  = aws_vpc.main.id
+  availability_zone       = local.azs_names[count.index]
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, 10+count.index)
+  map_public_ip_on_launch = true
+  tags                    = {
+    Name = "urhobo_dictionary_vpc_subnet_${local.azs_names[count.index]}"
+  }
+}
+
+# -- Internet Gateway --
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  tags   = {
+    Name = "urhobo_dictionary_igw"
+  }
+}
+
+resource "aws_eip" "main" {
+  count      = local.azs_count
+  depends_on = [aws_internet_gateway.main]
+  tags       = { Name = "urhobo_dictionary_eip_${local.azs_names[count.index]}" }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "urhobo_dictionary_rt_public" }
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  route_table_id = aws_route_table.public.id
+  subnet_id      = aws_subnet.public[count.index].id
+  count          = local.azs_count
+}
+
+resource "aws_ecs_cluster" "main" {
+  name = "urhobo_dictionary_cluster"
+}
+
+# -- ECS NODE ROLE --
+# A policy document that allows a Service to assume roles
+data "aws_iam_policy_document" "ecs_node_doc" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+
+    principals {
+      identifiers = ["ec2.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+}
+
+# An IAM role for the ECS Service
+resource "aws_iam_role" "ecs_node_role" {
+  name_prefix = "urhobo_dictionary_ecs_node_role_"
+
+  # Allow only ECS services to assume this role
+  assume_role_policy = data.aws_iam_policy_document.ecs_node_doc.json
+}
+
+# Attach the IAM policy that allows the ECS Services control EC2 resources
+resource "aws_iam_role_policy_attachment" "ecs_node_role_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+  role       = aws_iam_role.ecs_node_role.name
+}
+
+# An instance profile used to pass the role information to the individual EC2 instances
+resource "aws_iam_instance_profile" "ecs_node" {
+  name_prefix = "urhobo_dictionary_ecs_node_profile_"
+  path        = "/ecs/instance/"
+  role        = aws_iam_role.ecs_node_role.name
+}
+
+# -- ECS TASK ROLE --
+data "aws_iam_policy_document" "ecs_task_doc" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+
+    principals {
+      identifiers = ["ec2.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+}
+
+resource "aws_iam_role" "ecs_task_role" {
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_doc.json
+  name_prefix        = "urhobo_dictionary_ecs_task_role_"
+}
+
+resource "aws_iam_role" "ecs_exec_role" {
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_doc.json
+  name_prefix        = "urhobo_dictionary_ecs_exec_role_"
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_exec_role_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role       = aws_iam_role.ecs_exec_role.name
+}
+
+# -- SECURITY GROUPS --
+resource "aws_security_group" "ecs_security_group" {
+  name_prefix = "urhobo_dictionary_ecs_security_group_"
+  vpc_id      = aws_vpc.main.id
+
+  # Allow out-going TCP traffic to any address from ports 0 - 65535
+  egress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+data "aws_ssm_parameter" "ecs_node_ami" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
+}
+
+resource "aws_launch_template" "ecs_ec2" {
+  name_prefix            = "urhobo_dictionary_ec2_"
+  image_id               = data.aws_ssm_parameter.ecs_node_ami.value
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.ecs_security_group.id]
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.ecs_node.arn
+  }
+
+  monitoring { enabled = true }
+  user_data = base64encode(<<-EOF
+#!/bin/bash
+echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config;
+  EOF
+  )
+}
+
+resource "aws_autoscaling_group" "ecs" {
+  max_size                  = 1
+  min_size                  = 1
+  name_prefix               = "urhobo_dictionary_ecs_asg_"
+  vpc_zone_identifier       = aws_subnet.public[*].id
+  health_check_grace_period = 30 // In seconds
+  health_check_type         = "EC2"
+  protect_from_scale_in     = false
+
+  launch_template {
+    id      = aws_launch_template.ecs_ec2.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    propagate_at_launch = true
+    value               = "urhobo_dictionary_cluster"
+  }
+
+  tag {
+    key                 = "AmazonECSManaged"
+    propagate_at_launch = true
+    value               = ""
+  }
+}
+
+resource "aws_ecs_capacity_provider" "main" {
+  name = "urhobo_dictionary_ecs_capacity_provider"
+  auto_scaling_group_provider {
+    auto_scaling_group_arn         = aws_autoscaling_group.ecs.arn
+    managed_termination_protection = "DISABLED"
+
+    managed_scaling {
+      maximum_scaling_step_size = 1
+      minimum_scaling_step_size = 1
+      status                    = "ENABLED"
+      target_capacity           = 100
+    }
+  }
+}
+
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name       = aws_ecs_cluster.main.name
+  capacity_providers = [aws_ecs_capacity_provider.main.name]
+  default_capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.main.name
+    base              = 1
+    weight            = 100
+  }
+}
+
+# -- AWS ECR --
+resource "aws_ecr_repository" "main" {
+  name                 = "urhobo_dictionary_server"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+output "urhobo_dictionary_repo_url" {
+  value = aws_ecr_repository.main.repository_url
+}
+
+# -- CLOUD WATCH --
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/urhobo_dictionary"
+  retention_in_days = 14
+}
+
+# -- ECS TASK DEFINITION --
+
+resource "aws_ecs_task_definition" "main" {
+  family                = "urhobo_dictionary"
+  task_role_arn         = aws_iam_role.ecs_task_role.arn
+  execution_role_arn    = aws_iam_role.ecs_exec_role.arn
+  network_mode          = "awsvpc"
+  cpu                   = 256
+  memory                = 256
+  container_definitions = jsonencode([
+    {
+      name         = "urhobo_server"
+      image        = "${aws_ecr_repository.main.repository_url}:latest"
+      essential    = true
+      portMappings = [{ containerPort = 8080, hostPort = 80 }]
+
+      environmentFiles = [
+        {
+          value = "arn:aws:s3:::personalappenvfiles/urhobo_dictionary_server.env"
+          type  = "s3"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options   = {
+          "awslogs-region" : "ca-central-1"
+          "awslogs-group" : aws_cloudwatch_log_group.ecs.name
+          "awslogs-stream-prefix" : "urhobo_dictionary_server_"
+        }
+      }
+    }
+  ])
+}
+
+# -- ECS TASK SECURITY GROUP --
+resource "aws_security_group" "ecs_task_security_group" {
+  name_prefix = "ecs_task_sg_"
+  description = "Allow all traffic within the VPC"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_ecs_service" "main" {
+  name            = "urhobo_dictionary_server"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.main.arn
+  desired_count   = 1
+  network_configuration {
+    security_groups = [aws_security_group.ecs_task_security_group.id]
+    subnets         = aws_subnet.public[*].id
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.main.name
+    base              = 1
+    weight            = 100
+  }
+
+  # Make sure that each service instance is spread out as equally as possible across availability zones
+  ordered_placement_strategy {
+    type  = "spread"
+    field = "attribute:ecs.availability-zone"
+  }
+
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
+  depends_on = [aws_lb_target_group.ecs_urhobo_dictionary_target_group]
+  load_balancer {
+    container_name   = "urhobo_dictionary_server"
+    container_port   = 80
+    target_group_arn = aws_lb_target_group.ecs_urhobo_dictionary_target_group.arn
+  }
+}
+
+# -- APPLICATION LOAD BALANCER --
+resource "aws_security_group" "ecs_load_balancer" {
+  name_prefix = "urhobo_dictionary_lb_sg_"
+  description = "Allow all HTTP/HTTPS traffic from public"
+  vpc_id      = aws_vpc.main.id
+
+  dynamic "ingress" {
+    for_each = [80, 443]
+    content {
+      protocol    = "tcp"
+      from_port   = ingress.value
+      to_port     = ingress.value
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+  egress {
+    protocol    = "-1"
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_lb" "ecs_load_balancer" {
+  name               = "urhobo_dictionary_lb"
+  load_balancer_type = "application"
+  subnets            = aws_subnet.public[*].id
+  security_groups    = [aws_security_group.ecs_load_balancer.id]
+}
+
+resource "aws_lb_target_group" "ecs_urhobo_dictionary_target_group" {
+  name_prefix = "urhobo_dictionary_lb_tg_"
+  vpc_id      = aws_vpc.main.id
+
+  protocol    = "HTTP"
+  port        = 80
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    path                = "/"
+    port                = 80
+    matcher             = 200
+    interval            = 10
+    timeout             = 35
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+
+  }
+}
+
+resource "aws_lb_listener" "ecs_urhobo_lb_listener" {
+  load_balancer_arn = aws_lb.ecs_load_balancer.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ecs_urhobo_dictionary_target_group.arn
+  }
+}
+
+output "alb_url" {
+  value = aws_lb.ecs_load_balancer.dns_name
+}

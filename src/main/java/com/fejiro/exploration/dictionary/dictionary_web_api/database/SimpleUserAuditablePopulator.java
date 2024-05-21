@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -35,8 +37,13 @@ public class SimpleUserAuditablePopulator implements UserAuditablePopulator {
     }
 
     Integer getId() {
-        return ((AppUserDomainObject) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
-                .getId();
+        return Optional.ofNullable(SecurityContextHolder.getContext())
+                       .map(SecurityContext::getAuthentication)
+                       .map(Authentication::getPrincipal)
+                       .map(principal -> (AppUserDomainObject) principal)
+                       .map(AppUserDomainObject::getId)
+                       .orElse(null);
+
     }
 
     @Override

@@ -1,0 +1,16 @@
+# Add groups
+groups:
+  - admingroup: [ root, sys ]
+  - dictionary
+
+# Add users
+users:
+  - default
+  - name: afejith
+    gecos: afejith
+    shell: /bin/bash
+    primary_group: dictionary
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    lock_passwd: false
+

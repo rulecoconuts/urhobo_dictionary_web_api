@@ -1,0 +1,1 @@
+docker run --rm -it --entrypoint sh --env-file ../.env --net=host --memory="512m" --cpu-shares="512" afejith/urhobo_dictionary_server

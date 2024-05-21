@@ -86,10 +86,11 @@ public class CustomJOOQBackedLanguageService implements LanguageService, Generic
 
         if (model.getName() == null || model.getName().isBlank()) {
             errors.put("name", "Language name is required");
-        } else {
+        } else if (existingCopy.isPresent() && !existingCopy.get().getName().equalsIgnoreCase(model.getName())) {
+            // If name has been changed, check if name is unique
             var existing = retrieveOne(Language.LANGUAGE.NAME.equalIgnoreCase(model.getName()));
 
-            if (existing.isPresent() && model.getId() != null && !existing.get().getId().equals(model.getId()))
+            if (existing.isPresent())
                 errors.put("name", "Language name already exists");
         }
 
@@ -100,6 +101,7 @@ public class CustomJOOQBackedLanguageService implements LanguageService, Generic
         } else if (existingCopy.isEmpty()) {
             errors.put("id", "ID does not exist in database");
         }
+        
 
         return errors;
     }
